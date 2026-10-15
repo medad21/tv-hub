@@ -1,0 +1,9 @@
+services:
+  tvhub:
+    build: .
+    restart: unless-stopped        # restarts after crash / watchdog exit / server reboot
+    env_file: .env                 # must contain DASH_PASSWORD
+    ports: ["3000:3000"]           # do NOT open this port to the internet without HTTPS (see README)
+    volumes: ["tvhub-data:/data"]  # state.json + events.log survive restarts
+volumes:
+  tvhub-data: {}

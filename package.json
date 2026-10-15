@@ -1,0 +1,26 @@
+{
+  "name": "tv-hub",
+  "version": "1.0.0",
+  "description": "TradingView live dashboard + signal / paper / live trading bot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js && node test-live.js && node test-brokers.js && node test-backtest.js && node test-regress.js && node test-feed.js && node test-alerts.js && node test-reliability.js && node test-custom.js && node test-significance.js && node test-ai.js && node test-trials.js && node test-sweep-honest.js && node test-live-safety.js && node test-system.js && node test-evidence.js && node test-telegram-settings.js && node test-timeframe.js && node test-blocks.js && node test-history.js",
+    "backtest": "node backtest.js",
+    "sweep": "node backtest.js --sweep",
+    "import-history": "node history-import.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@mathieuc/tradingview": "3.5.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ws": "^8.18.0",
+    "undici": "6.24.1"
+  },
+  "optionalDependencies": {
+    "ccxt": "4.5.58"
+  }
+}

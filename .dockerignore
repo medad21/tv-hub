@@ -1,0 +1,8 @@
+node_modules
+state.json
+events.log
+backtest-cache
+.env
+backtest-trades.csv
+trades.jsonl
+backtest-history.log

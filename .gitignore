@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# secrets and local settings (NEVER commit these)
+.env
+.env.*
+!.env.example
+telegram.local.json
+ai-settings.json
+config.local.json
+
+# runtime data
+state.json
+state.json.corrupt-*
+events.log
+trades.jsonl
+trials.json
+custom-combos.json
+custom-strategies.user.js
+evidence-latest.json
+evidence-log.jsonl
+backtest-cache/
+backtest-history.log
+backtest-trades.csv
+candles/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
