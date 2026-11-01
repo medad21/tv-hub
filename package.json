@@ -5,10 +5,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test.js && node test-live.js && node test-brokers.js && node test-backtest.js && node test-regress.js && node test-feed.js && node test-alerts.js && node test-reliability.js && node test-custom.js && node test-significance.js && node test-ai.js && node test-trials.js && node test-sweep-honest.js && node test-live-safety.js && node test-system.js && node test-evidence.js && node test-telegram-settings.js && node test-timeframe.js && node test-blocks.js && node test-history.js",
+    "test": "node test.js && node test-live.js && node test-brokers.js && node test-backtest.js && node test-regress.js && node test-feed.js && node test-alerts.js && node test-reliability.js && node test-custom.js && node test-significance.js && node test-ai.js && node test-trials.js && node test-sweep-honest.js && node test-live-safety.js && node test-system.js && node test-evidence.js && node test-telegram-settings.js && node test-timeframe.js && node test-blocks.js && node test-history.js && node test-mt5.js && node test-lang.js && node test-structure.js && node test-mt5-live.js && node test-forecast.js && node test-assistant.js && node test-ml.js && node test-ml-pooled.js && node test-ml-meta.js && node test-ml-auto.js",
     "backtest": "node backtest.js",
     "sweep": "node backtest.js --sweep",
-    "import-history": "node history-import.js"
+    "import-history": "node history-import.js",
+    "import-mt5": "node mt5-import.js",
+    "import-crypto": "node history-import.js --symbols BINANCE:BTCUSDT,BINANCE:ETHUSDT,BINANCE:SOLUSDT,BINANCE:BNBUSDT,BINANCE:XRPUSDT,BINANCE:ADAUSDT,BINANCE:DOGEUSDT,BINANCE:LINKUSDT --tf 60 --from 2021-01"
   },
   "engines": {
     "node": ">=18"

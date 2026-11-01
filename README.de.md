@@ -6,7 +6,7 @@ Ein Live-Dashboard für [TradingView](https://www.tradingview.com) mit integrier
 
 > ⚠️ **Haftungsausschluss:** Dieses Projekt dient der Bildung und Forschung. Es ist **keine Anlageberatung**, und keine der enthaltenen Strategien verspricht Gewinne. Beim Handel kann Geld verloren gehen. Der Code für echte Orders wurde nur gegen simulierte Börsen und Broker getestet. Beginne daher immer mit einem Testnet- oder Demokonto.
 
-> ℹ️ Die Oberfläche des Dashboards ist derzeit **persisch (RTL)**. Bot, Telegram-Nachrichten und Konfiguration funktionieren unabhängig von deiner Sprache.
+> ℹ️ Das Dashboard hat oben einen Sprachschalter (**English / فارسی**). Telegram-Nachrichten, Berichte und Konsolenausgaben folgen `APP_LANG` in der `.env` (`fa` = Persisch, Standard; `en` = Englisch).
 
 ---
 
@@ -48,7 +48,7 @@ Ein Live-Dashboard für [TradingView](https://www.tradingview.com) mit integrier
 Voraussetzung: **Node.js 18 oder neuer** (Node 20/22 empfohlen).
 
 ```bash
-git clone <your-repo-url> tv-hub
+git clone https://github.com/medad21/tv-hub.git
 cd tv-hub
 ```
 
@@ -88,6 +88,7 @@ Alles steht in der `.env` (alle Optionen siehe `.env.example`):
 MODE=signal                     # signal | paper | live
 SYMBOLS=BINANCE:BTCUSDT,OANDA:XAUUSD   # EXCHANGE:TICKER, leer = eingebaute Liste mit 25 Symbolen
 TIMEFRAME=60                    # 1, 5, 15, 30, 60, 240, D, W (Standard 15)
+APP_LANG=fa                     # fa | en — Sprache von Telegram-Nachrichten, Berichten und Konsolenausgaben
 HOST=127.0.0.1
 DASH_PASSWORD=
 TELEGRAM_TOKEN=
@@ -135,6 +136,16 @@ Der Backtester nutzt dieselbe Engine wie der Live-Bot, die Ergebnisse spiegeln a
 
 Ein Ergebnis gilt nur als **verlässlich**, wenn es alles Folgende besteht: mindestens 30 Trades, Profit Factor ≥ 1,2, positives durchschnittliches R, Gewinn in mindestens 3 von 5 Walk-Forward-Fenstern, geringe Verlustwahrscheinlichkeit in der Monte-Carlo-Simulation, ein Block-Bootstrap-Signifikanztest, korrigiert um die Zahl der ausprobierten Ideen, und eine einmalige Prüfung auf 25 % der Daten, die von jeder Entscheidung ausgeschlossen waren. Besteht nichts, sagt der Bericht das offen, statt das „beste der schlechten“ Ergebnisse auszuwählen.
 
+### Lange Gold-/Forex-Historie aus MetaTrader 5
+
+TradingView liefert nur die letzten paar tausend Kerzen. MetaTrader 5 hält für Gold und Forex Jahre davon auf dem Server deines Brokers, und tv-hub liest sie ohne Python und ohne API-Schlüssel:
+
+1. Kopiere `mt5/TvHubExport.mq5` in den Ordner `MQL5\Scripts` von MT5 (MT5: Datei → Datenordner öffnen), öffne es im MetaEditor (F4), kompiliere (F7) und ziehe es aus Navigator → Skripte auf ein Chart. Wähle im Dialog die Symbole aus einer Liste (dieses Chart / alles im Market Watch / Gold, Silber und die 7 Majors / eigene Liste) und hake die Zeitrahmen an (M1 bis monatlich). Das Skript liest nur die Historie und handelt nie. Extras → Optionen → Charts → „Max. Bars im Chart“ begrenzt, wie viel es exportieren kann (für M1 erhöhen).
+2. Starte `import-mt5.bat` (oder `npm run import-mt5`). `--dry` prüft nur, `--dir <Ordner>` für ein portables MT5, `--map "GOLD#=OANDA:XAUUSD"` für unbekannte Namen, `--offset ny:7`, um die Broker-Uhr selbst anzugeben.
+3. Im Backtest-Tab des Dashboards **Datenquelle: MetaTrader** wählen. Der Live-Bot nutzt weiter TradingView.
+
+Die Kerzenzeiten von MetaTrader sind die Serveruhr des Brokers, die meist mit der Sommerzeit wandert. Der Import findet die Uhr selbst, indem er die Kerzen mit den vom Bot archivierten TradingView-Kerzen abgleicht (führe also zuerst einen 1-Stunden-Backtest mit TradingView-Daten und vielen Kerzen aus, z. B. auf EURUSD, damit das TradingView-Archiv über eine Sommerzeitumstellung zurückreicht) und **speichert nichts, was er nicht belegen kann**, und nennt den Grund. MetaTrader-Kerzen landen in einem getrennten Archiv und werden nie mit TradingView-Daten gemischt; jeder Import ersetzt dieses Archiv. Die Uhr wird einmal pro Broker-Server aus allen seinen Dateien zusammen bestimmt, und nur TradingView-Kerzen, die eine Sommerzeitumstellung überspannen, können zwischen den möglichen Uhrenmodellen entscheiden: das richtige Modell setzt deutlich weniger Kerzen daneben. Aus Handelszeiten wird nichts geraten (auf einem echten Server lieferte das die falsche Antwort). Ohne diesen Beweis lehnt der Import ab und sagt es; verlängere das TradingView-Archiv wie beschrieben oder gib die Uhr selbst an (`--offset eu:0` = Osteuropa mit europäischer Sommerzeit, `--offset ny:7` = New York + 7 Stunden). Alle anderen Symbole und Zeitrahmen desselben Servers sowie die Tages-/Wochen-/Monatsdateien nutzen diese Serveruhr. Die Preise der Broker unterscheiden sich leicht, Ergebnisse auf MetaTrader-Daten sind also nicht identisch mit TradingView. Das MQL5-Skript konnte in der Entwicklungsumgebung nicht kompiliert werden: erst auf einem Demokonto testen.
+
 ## Märkte und Broker
 
 | Markt | Anbieter | Schlüssel |
@@ -167,6 +178,7 @@ Erstelle einen Bot mit `@BotFather` und verbinde ihn über das Dashboard-Panel o
 | `risk.js`, `config.js`, `config-overrides.js` | Positionsgröße, Limits und Einstellungen |
 | `backtest*.js`, `significance.js`, `trials.js`, `evidence.js` | Backtesting und statistische Validierung |
 | `history-import.js`, `candle-store.js` | Import langer Historien und Kerzenarchiv |
+| `mt5-import.js`, `mt5/TvHubExport.mq5`, `import-mt5.bat` | Lange Gold-/Forex-Historie aus MetaTrader 5 (getrenntes Archiv) |
 | `broker-alpaca.js`, `broker-oanda.js` | Aktien- und Forex-Broker |
 | `telegram*.js`, `notify.js`, `summary.js` | Telegram und Benachrichtigungen |
 | `ai*.js` | Optionaler KI-Strategiehelfer |
@@ -186,7 +198,7 @@ Die Testsuite läuft offline gegen simulierte Börsen und Broker und deckt Risik
 - Stop-Loss und Take-Profit werden von der App überwacht. Börsenseitige Stops sind für Krypto standardmäßig aktiv, ein Trailing-Stop bewegt sich aber nur innerhalb der App (bei Alpaca und OANDA bleibt der brokerseitige Stop fest).
 - Kurslücken (Gaps) können zu Verlusten über den Stop hinaus führen.
 - Der Import langer Historien funktioniert nur für Binance-Spot; Aktien und Forex sind auf TradingView-Daten und das wachsende lokale Archiv beschränkt.
-- Die Dashboard-Oberfläche ist derzeit nur auf Persisch verfügbar.
+- Die englische Übersetzung deckt die ganze App ab, aber eine selten auftretende Meldung kann noch auf Persisch erscheinen. Im Dashboard listet `I18N_MISSING()` in der Browser-Konsole solche Texte auf.
 
 ## Mitwirkende
 

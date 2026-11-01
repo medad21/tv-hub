@@ -5,5 +5,6 @@ services:
     env_file: .env                 # must contain DASH_PASSWORD
     ports: ["3000:3000"]           # do NOT open this port to the internet without HTTPS (see README)
     volumes: ["tvhub-data:/data"]  # state.json + events.log survive restarts
+    extra_hosts: ["host.docker.internal:host-gateway"]  # lets the container reach Ollama running on the host (set OLLAMA_HOST=http://host.docker.internal:11434 in .env; Ollama must listen on 0.0.0.0)
 volumes:
   tvhub-data: {}

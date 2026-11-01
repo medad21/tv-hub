@@ -61,6 +61,9 @@ const app = express();
 app.get('/health', (req, res) => res.json({ ok: true, mode: cfg.mode, lastUpdateSec: Math.round((Date.now() - lastUpdate) / 1000) }));
 const PUBLIC = new Set(['/manifest.json', '/icon.svg']);
 app.use((req, res, next) => (PUBLIC.has(req.path) ? next() : auth(req, res, next)));
+app.get('/default-lang.js', (req, res) => { // the dashboard starts in APP_LANG until the user picks a language with the button
+  res.type('application/javascript').send(`window.TVHUB_DEFAULT_LANG=${JSON.stringify(require('./lang').LANG)};`);
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 const server = http.createServer(app);
@@ -104,7 +107,8 @@ function backtestOpts(body = {}) {
     if (Number.isFinite(Number(pe.closePct)) && Number(pe.closePct) >= 0 && Number(pe.closePct) <= 100) partialExitOverride.closePct = Number(pe.closePct);
     if (pe.moveStopToBreakeven !== undefined) partialExitOverride.moveStopToBreakeven = !!pe.moveStopToBreakeven;
   }
-  return { symbols, tf, candles, refresh: !!body.refresh, strategyId, partialExitOverride };
+  const source = body.source === 'mt5' ? 'mt5' : 'tv'; // 'mt5' = candles imported from MetaTrader (mt5-import.js); never mixed with TradingView data
+  return { symbols, tf, candles, refresh: !!body.refresh, strategyId, partialExitOverride, source };
 }
 // Lets the dashboard's backtest tab pre-fill symbols/timeframe from config.js instead of
 // making you type them by hand every time.
@@ -118,6 +122,9 @@ app.get('/api/meta', (req, res) => res.json({
 app.use('/api/custom', require('./custom-routes')(cfg)); // combinations + your own strategy file
 app.use('/api/trials', require('./trials-routes')()); // the research ledger (how many ideas were tried per symbol)
 app.use('/api/ai', require('./ai-routes')()); // AI key slot + plain-words -> strategy proposal (no key = the buttons just say so)
+app.use('/api/mt5/live', require('./mt5-live-routes')()); // LIVE MetaTrader 5 feed (read-only, from mt5/TvHubLive.mq5) + market structure (support/resistance, swings, break/pullback) computed on it
+app.use('/api/assistant', require('./assistant-routes')()); // in-app analysis assistant: per-strategy report from code, optional AI (free local Ollama) rewording, calibration of the probabilities
+app.use('/api/ml', require('./ml-routes')()); // ML lab: walk-forward experiment on the candle archive (report only; never trades)
 
 // Apply settings chosen from a sweep's "recommended" result (or any row) to the running app right away,
 // and remember them for next time. Reset undoes it and goes back to config.js's hand-written defaults.
@@ -228,7 +235,8 @@ app.post('/api/backtest/matrix', async (req, res) => {
   const days = Math.min(Math.max(Number(body.days) || 180, 14), 1500); // the SAME calendar window is judged for every timeframe
   btBusy = true;
   try {
-    const out = await runner.run('matrix', { symbol, timeframes, strategies, days, refresh: !!body.refresh, strict: body.strict !== false, holdout: Math.min(0.5, Math.max(0, Number(body.holdout) || 0)) }, (p) => broadcast({ type: 'btprogress', data: p }));
+    const out = await runner.run('matrix', { symbol, timeframes, strategies, days, source: body.source === 'mt5' ? 'mt5' : 'tv', refresh: !!body.refresh, strict: body.strict !== false, holdout: Math.min(0.5, Math.max(0, Number(body.holdout) || 0)) }, (p) => broadcast({ type: 'btprogress', data: p }));
+    try { require('./matrix-store').save(out, body.source === 'mt5' ? 'mt5' : 'tv'); } catch {} // keep the verdict table for the AI assistant (never blocks the answer)
     res.json(out);
   } catch (e) { res.status(500).json({ error: e.message }); }
   finally { btBusy = false; }

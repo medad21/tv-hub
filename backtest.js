@@ -46,11 +46,16 @@ function fetchBars(client, symbol, tf, n) {
 // Downloads (in parallel, a few symbols at a time) whatever is not already cached and fresh.
 // onProgress({phase:'data', symbol, state:'cached'|'downloading'|'done', done, total}) lets the caller show status.
 // Returns { data: {symbol: bars}, stamps: {symbol: cache-file mtime} } (stamps identify a data version for caching).
-async function loadAll({ symbols, tf, candles, cacheDir = DEFAULT_CACHE, refresh = false, onProgress, concurrency = 6 }) {
+async function loadAll({ symbols, tf, candles, cacheDir = DEFAULT_CACHE, refresh = false, onProgress, concurrency = 6, source = 'tv' }) {
   fs.mkdirSync(cacheDir, { recursive: true });
   const data = {}, stamps = {}, todo = [];
   let done = 0;
   const note = (symbol, state) => emit({ onProgress }, { phase: 'data', symbol, state, done, total: symbols.length });
+  if (source === 'mt5') { // MetaTrader candles imported by mt5-import.js: read straight from their own archive (nothing is downloaded, TradingView data is never mixed in)
+    const { mt5Key } = require('./mt5-import'), data = {}, stamps = {};
+    for (const s of symbols) { const key = mt5Key(s); data[s] = store.read(key, tf).slice(-candles); stamps[s] = store.stamp(key, tf); done++; note(s, 'cached'); }
+    return { data, stamps };
+  }
   for (const s of symbols) {
     const f = cacheFile(cacheDir, s, tf, candles);
     let fresh = false;
@@ -114,7 +119,7 @@ function buildPrep(loaded, opts, base = cfg) {
   for (const s of opts.symbols) {
     const bars = loaded.data[s];
     if (!bars || bars.length <= WINDOW / 2) { skipped.push({ symbol: s, candles: bars ? bars.length : 0 }); continue; }
-    const key = `${s}|${opts.tf}|${opts.candles}|${loaded.stamps[s] || 'x'}|${bars.length}|${sig}`;
+    const key = `${opts.source === 'mt5' ? 'mt5|' : ''}${s}|${opts.tf}|${opts.candles}|${loaded.stamps[s] || 'x'}|${bars.length}|${sig}`;
     if (!prepCache.has(key)) { if (prepCache.size > 80) prepCache.clear(); prepCache.set(key, prepare(bars, base.rsi, base.risk)); }
     prep[s] = prepCache.get(key);
   }
@@ -547,17 +552,22 @@ function resolveBase(opts) {
   return base;
 }
 
+const noData = (opts) => (opts.source === 'mt5'
+  ? 'برای این نماد/تایم‌فریم هنوز داده‌ی MetaTrader وارد نشده است: اسکریپت mt5/TvHubExport.mq5 را در MetaTrader اجرا کن و بعد «npm run import-mt5» (یا import-mt5.bat) را بزن. (MetaTrader data has not been imported for this symbol/timeframe yet.)'
+  : 'no data (check internet, symbols, or TradingView access)');
+
 async function runBacktest(opts) {
   const base = resolveBase(opts);
   if (!STRATEGIES[base.strategy.id]) return { error: `استراتژی «${base.strategy.id}» پیدا نشد (حذف شده یا فایل استراتژی شخصی خطا دارد)` };
   resetCustomErrors(base.strategy.id);
   const loaded = await loadAll(opts);
   const { prep, skipped } = buildPrep(loaded, opts, base);
-  if (!Object.keys(prep).length) return { error: 'no data (check internet, symbols, or TradingView access)', skipped };
+  if (!Object.keys(prep).length) return { error: noData(opts), skipped };
   emit(opts, { phase: 'compute' });
   for (const sym of Object.keys(prep)) T.record(sym, [T.trialKey(sym, opts.tf, base.strategy.id, base)]); // looking at it counts as one idea tried
   const rep = buildReport(prep, opts.tf, base);
   rep.skipped = skipped;
+  rep.source = opts.source === 'mt5' ? 'mt5' : 'tv';
   const ce = customErrors(base.strategy.id); if (ce) rep.strategyError = ce;
   if (!opts.withTrades) delete rep.trades; // the full trade list is large; only the CLI (CSV export) asks for it
   return rep;
@@ -569,7 +579,7 @@ async function runSweep(opts) {
   resetCustomErrors(base.strategy.id);
   const loaded = await loadAll(opts);
   const { prep } = buildPrep(loaded, opts, base);
-  if (!Object.keys(prep).length) return { error: 'no data (check internet, symbols, or TradingView access)' };
+  if (!Object.keys(prep).length) return { error: noData(opts) };
   emit(opts, { phase: 'compute' });
   const grid = sweepGrid(base);
   for (const sym of Object.keys(prep)) T.record(sym, grid.map((o) => T.trialKey(sym, opts.tf, base.strategy.id, effBase(base, o)))); // a Sweep tries the whole grid, whatever it finally shows
@@ -614,7 +624,7 @@ function applyHoldout(j, hv) {
 const RELIABILITY = { minTrades: 30, minPF: 1.2, minFolds: 3, folds: 5, maxProbLoss: 20, maxPAdj: 0.10 };
 
 const tfMinutes = (tf) => { const t = String(tf).toUpperCase(); if (/^\d+$/.test(t)) return Number(t); if (/^\d*D$/.test(t)) return 1440 * (parseInt(t, 10) || 1); if (/^\d*W$/.test(t)) return 10080 * (parseInt(t, 10) || 1); if (/^\d*M$/.test(t)) return 43200 * (parseInt(t, 10) || 1); return 60; };
-const TF_FA = { 1: '۱ دقیقه', 5: '۵ دقیقه', 15: '۱۵ دقیقه', 30: '۳۰ دقیقه', 60: '۱ ساعت', 120: '۲ ساعت', 240: '۴ ساعت', 1440: 'روزانه', 10080: 'هفتگی' };
+const TF_FA = { 1: '۱ دقیقه', 5: '۵ دقیقه', 15: '۱۵ دقیقه', 30: '۳۰ دقیقه', 60: '۱ ساعت', 120: '۲ ساعت', 240: '۴ ساعت', 1440: 'روزانه', 10080: 'هفتگی', 43200: 'ماهانه' };
 const tfFa = (tf) => TF_FA[tfMinutes(tf)] || String(tf);
 
 // Context a good number needs: compared with simply holding, and what kind of market it was. Never changes the verdict by
@@ -794,7 +804,28 @@ function matrixReportText(r) {
   return L.join('\n');
 }
 
-module.exports = { buildPrep, ranges, SWEEP_HOLD, loadAll, prepare, run, summarize, buildReport, buildSweep, sweepGrid, holdoutVerdict, applyHoldout, MIN_HOLD_TRADES, runBacktest, runSweep, runMatrix, matrixReportText, judge, tfMinutes, RELIABILITY, walkForward, monteCarlo, WINDOW, STRATEGIES };
+// The raw signal of one strategy on every candle ('buy' / 'sell' / 'hold' / 'none'), built exactly the way run() builds it: the same readings,
+// the same 300-candle windows, the same strategySignal(). Used by the ML lab's meta-labeling, so that "a signal of strategy X" there means
+// precisely what it means in the backtest and in the live bot. (run() keeps its own inline copy because it reads lazily and bar by bar.)
+function signalSeries(bars, sid, rsiCfg = cfg.rsi, riskCfg = cfg.risk) {
+  const READS = STRATEGY_READS[sid];
+  if (!STRATEGIES[sid] || !READS) return null;
+  const { rs, esh, elg, mh, hh, ll } = prepare(bars, rsiCfg, riskCfg);
+  const readAt = (j) => {
+    const o = {};
+    if (READS.custom) o.ctx = makeCtx(bars, j);
+    for (const f of READS.fields) {
+      o[f] = f === 'rsi' ? rs[j] : f === 'emaShort' ? esh(j) : f === 'emaLong' ? elg(j) : f === 'hist' ? mh(j)
+        : f === 'close' ? bars[j].close : f === 'hh' ? hh(j) : ll(j);
+    }
+    return o;
+  };
+  const out = new Array(bars.length);
+  for (let i = 0; i < bars.length; i++) out[i] = strategySignal(sid, readAt(i), READS.needsPrev && i > 0 ? readAt(i - 1) : null, rsiCfg);
+  return out;
+}
+
+module.exports = { signalSeries, buildPrep, ranges, SWEEP_HOLD, loadAll, prepare, run, summarize, buildReport, buildSweep, sweepGrid, holdoutVerdict, applyHoldout, MIN_HOLD_TRADES, runBacktest, runSweep, runMatrix, matrixReportText, judge, tfMinutes, RELIABILITY, walkForward, monteCarlo, WINDOW, STRATEGIES };
 
 // ---------------- CLI ----------------
 if (require.main === module) {

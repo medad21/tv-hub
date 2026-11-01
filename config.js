@@ -1,4 +1,5 @@
 try { require('dotenv').config(); } catch {}
+require('./lang'); // APP_LANG=en: Telegram messages, console output and reports in English
 const fs = require('fs');
 const { parseSymbols } = require('./symbols');
 const path = require('path');

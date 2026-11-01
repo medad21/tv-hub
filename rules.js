@@ -32,6 +32,8 @@ const INDICATORS = {
   highest: { label: (o) => `بالاترین سقف ${o.period} کندل قبل`, params: { period: INT(null, 2, 250) } },
   lowest: { label: (o) => `پایین‌ترین کف ${o.period} کندل قبل`, params: { period: INT(null, 2, 250) } },
   avg_volume: { label: (o) => `میانگین حجم ${o.period ?? 20} کندل`, params: { period: INT(20, 2, 250) } },
+  swing_high: { label: (o) => `آخرین سقف تأییدشده (قدرت ${o.strength ?? 3})`, params: { strength: INT(3, 1, 10) } }, // a swing high needs `strength` lower candles after it to be known
+  swing_low: { label: (o) => `آخرین کف تأییدشده (قدرت ${o.strength ?? 3})`, params: { strength: INT(3, 1, 10) } },
 };
 const OPS = {
   '>': 'بیشتر از', '<': 'کمتر از', '>=': 'بیشتر یا مساوی', '<=': 'کمتر یا مساوی',
@@ -124,6 +126,8 @@ function operandValue(ctx, o) {
     case 'highest': v = ctx.highest(o.period); break;
     case 'lowest': v = ctx.lowest(o.period); break;
     case 'avg_volume': v = ctx.avgVolume(o.period); break;
+    case 'swing_high': v = ctx.swingHigh(o.strength); break;
+    case 'swing_low': v = ctx.swingLow(o.strength); break;
     default: return null;
   }
   if (v === null || v === undefined || !Number.isFinite(v)) return null;

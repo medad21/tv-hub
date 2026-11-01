@@ -92,5 +92,23 @@ function summary() {
   });
 }
 
+// Replaces the WHOLE archive of one symbol+timeframe with `bars` (oldest first), atomically. Only for sources that are pure imports
+// (MetaTrader, mt5-import.js): the export is then the single source of truth, so running the import again with better settings
+// fixes everything instead of leaving older, wrongly converted candles behind. Never used for the TradingView archive (there the
+// bot's own candles must never be rewritten). Returns the number of candles stored.
+function replace(symbol, tf, bars) {
+  const f = file(symbol, tf), m = new Map();
+  for (const b of bars) if (valid(b)) m.set(b.time, b);
+  const all = [...m.values()].sort((a, b) => a.time - b.time);
+  if (!all.length) return 0;
+  fs.mkdirSync(dir(), { recursive: true });
+  atomicWrite(f, all.map((b) => JSON.stringify(toRow(b))).join('\n') + '\n');
+  lastSeen.set(f, all[all.length - 1].time);
+  return all.length;
+}
+
+// When the archive file of this symbol+timeframe last changed (ms; 0 = no file). Backtests use it to know when cached data is stale.
+function stamp(symbol, tf) { try { return fs.statSync(file(symbol, tf)).mtimeMs; } catch { return 0; } }
+
 const _reset = () => lastSeen.clear(); // tests only
-module.exports = { merge, backfill, read, combine, summary, dir, _reset };
+module.exports = { merge, backfill, replace, stamp, read, combine, summary, dir, _reset };

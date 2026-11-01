@@ -195,6 +195,10 @@ function makeCtx(allBars, index = allBars.length - 1) {
       const x = c.slice(-p), mid = x.reduce((a, b) => a + b, 0) / p, sd = Math.sqrt(x.reduce((a, b) => a + (b - mid) ** 2, 0) / p);
       return { mid, upper: mid + mult * sd, lower: mid - mult * sd, width: (2 * mult * sd) / mid };
     }),
+    // market structure (market-structure.js): swing highs/lows, support/resistance zones, trend structure, break + pullback state. Sees only candles up to this one.
+    structure: (opts) => memoize('ms' + JSON.stringify(opts || null), () => require('./market-structure').analyze(W(), opts)), // { ok, price, atr, structure, zones, nearest, setups, ... } (ok:false while there are too few candles)
+    swingHigh: (strength = 3) => memoize('sh' + per(strength, 'swingHigh'), () => require('./market-structure').lastPivot(W(), 'high', strength)), // price of the last CONFIRMED swing high (needs `strength` lower candles after it) or null
+    swingLow: (strength = 3) => memoize('sl' + per(strength, 'swingLow'), () => require('./market-structure').lastPivot(W(), 'low', strength)),
     back: (k = 1) => (Number.isInteger(k) && k >= 1 && index - k >= 0 ? makeCtx(allBars, index - k) : null), // the same view, k candles earlier (for crossovers)
   };
 }

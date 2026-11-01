@@ -19,6 +19,9 @@
 //   ctx.bollinger(20, 2)     -> { mid, upper, lower, width } | null
 //   ctx.highest(20) / ctx.lowest(20)    highest high / lowest low of the 20 candles BEFORE this one
 //   ctx.avgVolume(20)        average volume of the last 20 candles
+//   ctx.structure()          market structure: { ok, atr, structure:{trend:'up'|'down'|'range', break}, zones, nearest:{support,resistance}, setups:[{dir,state,zone,invalidation}] }
+//                            (support/resistance zones, swings, break + pullback state; ok:false while there are too few candles)
+//   ctx.swingHigh(3) / ctx.swingLow(3)   price of the last confirmed swing high / low (null if none yet)
 //   ctx.back(1)              the same ctx one candle earlier (ctx.back(1).ema(20) = yesterday's EMA) or null — for crossovers
 //   ctx.bars                 the last ~300 candles, oldest -> newest ({ time, open, max, min, close, volume })
 // Periods must be whole numbers from 1 to 250 (indicators only see the last ~300 candles, as in the live bot).

@@ -5,6 +5,7 @@
 //
 //   node history-import.js --symbols BINANCE:BTCUSDT,BINANCE:ETHUSDT --tf 15,60,240,D --from 2023-01
 //   options: --to YYYY-MM (default: the last complete month)   --dry   (download and check, store nothing)
+//            --proxy http://127.0.0.1:10809   (or set HISTORY_PROXY) when data.binance.vision is blocked from your network
 //   npm run import-history -- --symbols BINANCE:BTCUSDT --tf 15 --from 2023-01
 //
 // What it does for every month file:
@@ -196,20 +197,30 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dry') o.dry = true;
-    else if (/^--(symbols|tf|from|to)$/.test(a)) o[a.slice(2)] = argv[++i];
+    else if (/^--(symbols|tf|from|to|proxy)$/.test(a)) o[a.slice(2)] = argv[++i];
     else throw new Error(`unknown option ${a}`);
   }
   return o;
 }
+// fetch through an HTTP proxy when one is given (--proxy http://127.0.0.1:10809, or the HISTORY_PROXY / HTTPS_PROXY variable): data.binance.vision
+// may be blocked from some countries. Only the download goes through it; nothing else in the program does.
+function fetchVia(proxy) {
+  if (!proxy) return undefined;
+  let u; try { u = new URL(proxy); } catch { throw new Error('--proxy must look like http://127.0.0.1:10809'); }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('--proxy must be an http:// or https:// address');
+  const undici = require('undici'), dispatcher = new undici.ProxyAgent(proxy);
+  return (url, opts = {}) => undici.fetch(url, { ...opts, dispatcher });
+}
 async function main(argv) {
   const o = parseArgs(argv);
+  const fetchFn = fetchVia(o.proxy || process.env.HISTORY_PROXY || process.env.HTTPS_PROXY || '');
   if (!o.symbols || !o.from) { console.log('usage: node history-import.js --symbols BINANCE:BTCUSDT,BINANCE:ETHUSDT --tf 15,60,240,D --from 2023-01 [--to 2026-09] [--dry]'); process.exit(1); }
   const tfs = String(o.tf || '15').split(',').map((x) => x.trim()).filter(Boolean);
   let bad = 0;
   for (const symbol of o.symbols.split(',').map((x) => x.trim()).filter(Boolean)) {
     for (const tf of tfs) {
       try {
-        const r = await importSymbol({ symbol, tf, from: o.from, to: o.to, dry: o.dry, onProgress: (p) => process.stdout.write(`\r  ${p.symbol} ${p.tf} ${p.month}   `) });
+        const r = await importSymbol({ symbol, tf, from: o.from, to: o.to, dry: o.dry, fetch: fetchFn, onProgress: (p) => process.stdout.write(`\r  ${p.symbol} ${p.tf} ${p.month}   `) });
         process.stdout.write('\r' + ' '.repeat(40) + '\r');
         console.log(reportText(r) + '\n');
         if (r.refused) bad++;

@@ -10,6 +10,7 @@ let delays = [1000, 5000, 20000]; // wait before retry 1, 2, 3
 const queue = [];
 let current = null;
 
+const lang = require('./lang');
 const settings = require('./telegram-settings'); // token / chat id / proxy: saved from the dashboard, or from .env
 const token = () => settings.get().token, chat = () => settings.get().chatId;
 const enabled = () => !!(token() && chat());
@@ -47,7 +48,7 @@ async function drain() {
 // Resolves true once delivered, false if it never was (or Telegram is not configured). Never rejects.
 function send(text) {
   if (!enabled()) return Promise.resolve(false);
-  let t = String(text);
+  let t = lang.tr(String(text));
   if (t.length > MAX_LEN) t = t.slice(0, MAX_LEN - 1) + '…';
   return new Promise((resolve) => {
     if (queue.length >= MAX_QUEUE) { const old = queue.splice(1, 1)[0]; if (old) old.resolve(false); } // keep the head (in flight), drop the oldest waiting
@@ -62,7 +63,7 @@ const flush = (ms = 3000) => (current ? Promise.race([current, sleep(ms)]) : Pro
 // One direct attempt, no queue and no retries, with the reason if it failed — for the dashboard's test button.
 async function sendNow(text) {
   if (!enabled()) return { ok: false, error: 'توکن یا شناسه‌ی چت ذخیره نشده' };
-  const r = await settings.api('sendMessage', { chat_id: chat(), text: String(text) });
+  const r = await settings.api('sendMessage', { chat_id: chat(), text: lang.tr(String(text)) });
   return r.ok ? { ok: true } : { ok: false, error: r.description || 'خطا از تلگرام' };
 }
 
