@@ -1,0 +1,1703 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TV Hub</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon.svg">
+<meta name="theme-color" content="#131a24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TV Hub">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#131a24;--panel:#1a2331;--line:#2a3648;--text:#e8e4da;--muted:#8b97a8;--up:#3fc1a5;--down:#ef6f6c;--amber:#e9b44c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:400 14px/1.6 Vazirmatn,Tahoma,system-ui,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line)}
+h1{font-size:17px;font-weight:800;margin:0}
+.badge{padding:1px 10px;border-radius:99px;border:1px solid var(--amber);color:var(--amber);font-size:12px}
+.badge.live{border-color:var(--down);color:var(--down)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--down)}
+.dot.on{background:var(--up)}
+.spacer{flex:1}
+nav{display:flex;gap:4px}
+.navbtn{font:inherit;font-size:13px;padding:5px 14px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer}
+.navbtn.active{color:var(--text);border-color:var(--amber);background:#202b3c}
+main{display:none;gap:12px;padding:12px;grid-template-columns:1fr}
+main.view-on{display:grid}
+@media(min-width:1000px){#dashView.view-on{grid-template-columns:1fr 390px;height:calc(100vh - 47px)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;min-height:0}
+#chart{height:62vh}
+@media(min-width:1000px){#chart{height:100%}}
+.side{display:flex;flex-direction:column;gap:12px;min-height:0}
+.side .panel{display:flex;flex-direction:column}
+.side h2,.panel>h2{font-size:13px;font-weight:600;margin:0;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted)}
+.scroll{overflow:auto;flex:1}
+#list{max-height:46vh}
+@media(min-width:1000px){#list{max-height:none}.side .panel:first-child{flex:3}.side .panel:nth-child(2){flex:2}.side #stopsPanel{flex:0 0 auto}.side #tgPanel{flex:0 0 auto}.side{overflow-y:auto}.side .panel:first-child,.side .panel:nth-child(2){min-height:170px}}
+.row{display:grid;grid-template-columns:1fr auto 96px;align-items:center;gap:10px;width:100%;padding:7px 12px;background:none;border:0;border-bottom:1px solid var(--line);color:inherit;font:inherit;text-align:start;cursor:pointer}
+.row:hover,.row:focus-visible{background:#202b3c;outline:none}
+.nm small{display:block;color:var(--muted);font-size:11px;line-height:1.2}
+.px{font-variant-numeric:tabular-nums;direction:ltr}
+.up{color:var(--up)}.down{color:var(--down)}
+.chip{margin-inline-start:6px;font-size:11px;padding:0 6px;border-radius:4px}
+.chip.buy{background:rgba(63,193,165,.18);color:var(--up)}
+.chip.sell{background:rgba(239,111,108,.18);color:var(--down)}
+.rsi{display:flex;align-items:center;gap:6px;direction:ltr;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted)}
+.g{position:relative;flex:1;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--up) 0 30%,var(--line) 30% 70%,var(--down) 70% 100%);opacity:.9}
+.g b{position:absolute;top:-3px;width:3px;height:10px;background:var(--text);border-radius:1px;transform:translateX(-1px)}
+.ev{padding:7px 12px;border-bottom:1px solid var(--line);font-size:13px}
+.ev small{color:var(--muted);display:block}
+.empty{padding:16px 12px;color:var(--muted)}
+#pf{padding:6px 12px;font-size:12px;line-height:1.6;color:var(--muted);border-bottom:1px solid var(--line);display:none;direction:ltr;text-align:left;max-height:34vh;overflow:auto}
+#pf .pos{display:flex;gap:10px;align-items:baseline}#pf .pos small{font-size:11px}
+.btn{display:none;font:inherit;font-size:12px;padding:2px 10px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer}
+.btn:hover,.btn:focus-visible{border-color:var(--amber);outline:none}
+#langBtn{display:inline-block}  /* .btn is display:none (halt/panic are shown by JS only in paper/live) — the language button must always be visible */
+.muted{color:var(--muted)}
+/* ---- backtest view ---- */
+.symgrp{margin:8px 0 3px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.symlink{font:inherit;font-size:11px;background:none;border:0;color:var(--amber);cursor:pointer;padding:0 4px}
+.symchips{display:flex;flex-wrap:wrap;gap:6px}
+.symchip{font:inherit;font-size:12px;padding:3px 11px;border-radius:99px;border:1px solid var(--line);background:#0f1520;color:var(--muted);cursor:pointer;direction:ltr}
+.symchip.on{border-color:var(--amber);color:var(--text);background:#202b3c}
+.symchip.watch::before{content:'\25CF ';color:var(--up);font-size:9px}
+#btView{grid-template-columns:1fr;max-width:1100px;margin:0 auto;width:100%}
+.repform{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:12px}
+.btform{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:12px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.field input,.field select{font:inherit;background:#0f1520;border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px 8px;min-width:120px}
+.field.grow{flex:1;min-width:220px}
+.runbtn{font:inherit;font-size:13px;padding:7px 16px;border-radius:6px;border:1px solid var(--up);color:var(--up);background:none;cursor:pointer}
+.runbtn:hover{background:rgba(63,193,165,.12)}
+.runbtn.secondary{border-color:var(--line);color:var(--text)}
+.runbtn:disabled{opacity:.5;cursor:default}
+#btStatus{padding:0 12px 12px;font-size:13px;color:var(--muted)}
+#btResults{padding:0 12px 16px;display:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.stat{background:#0f1520;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat b{display:block;font-size:16px;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:start}
+th{color:var(--muted);font-weight:600}
+td.num,th.num{font-variant-numeric:tabular-nums;direction:ltr;text-align:left}
+.warn{color:var(--amber);font-size:12px;margin-bottom:10px}
+.cbchip{display:flex;gap:6px;align-items:center;font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#0f1520;cursor:pointer}
+.cbchip input{width:18px;height:18px;margin:0}
+.aitext{width:100%;box-sizing:border-box;font:inherit;font-size:15px;background:#0f1520;border:1px solid var(--line);color:var(--text);border-radius:6px;padding:10px;resize:vertical;line-height:1.7}
+.aibox{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:10px;background:rgba(255,255,255,.02)}
+.aibox pre{white-space:pre-wrap;margin:6px 0;font:inherit;line-height:1.9}
+.cbform .field input{min-width:0;width:100%;padding:10px;font-size:15px}
+.cbform .field{flex:1;min-width:140px}
+.cbitem{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:8px;background:#0f1520;font-size:13px}
+.cbitem small{display:block;color:var(--muted);line-height:1.7}
+.cbcode{direction:ltr;text-align:left;background:#0f1520;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12px;line-height:1.6;overflow:auto;white-space:pre;margin:8px 0}
+.chartbox{background:#0f1520;border:1px solid var(--line);border-radius:8px;padding:6px}
+svg.chart{display:block;width:100%;height:150px}
+.cap{font-size:11px;color:var(--muted);margin:2px 2px 14px;direction:ltr;text-align:left}
+#anaView{grid-template-columns:1fr;max-width:1100px;margin:0 auto;width:100%}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 14px}
+h3{font-size:13px;margin:0 0 6px;color:var(--muted);font-weight:600}
+.repbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px}
+.repbar a{color:var(--text);font-size:12px;text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 12px}
+.repbar a:hover{border-color:var(--amber)}
+#anaBody{padding:0 12px 16px}
+</style>
+<script src="/i18n-en.js"></script>
+<script src="/default-lang.js"></script>
+<script src="/i18n-core.js"></script>
+<script src="/i18n.js"></script>
+</head>
+<body>
+<header>
+  <h1>TV Hub</h1>
+  <nav>
+    <button class="navbtn active" data-view="dashView">داشبورد</button>
+    <button class="navbtn" data-view="btView">بک‌تست</button>
+    <button class="navbtn" data-view="anaView">گزارش‌گیری</button>
+    <button class="navbtn" data-view="asView">دستیار</button>
+  </nav>
+  <span class="spacer"></span>
+  <span id="mode" class="badge">—</span>
+  <button id="halt" class="btn"></button>
+  <button id="panic" class="btn">بستن همه</button>
+  <button id="langBtn" class="btn" title="Language / زبان" onclick="setLang(TVLANG==='en'?'fa':'en')">EN</button>
+  <span id="dot" class="dot" title="اتصال به سرور"></span>
+</header>
+
+<main id="dashView" class="view-on">
+  <div class="panel"><div id="chart"></div></div>
+  <div class="side">
+    <div class="panel">
+      <h2>دیده‌بان (کلیک = نمایش چارت)</h2>
+      <div id="list" class="scroll"><div class="empty">در انتظار داده‌ی زنده…</div></div>
+    </div>
+    <div class="panel">
+      <h2>سیگنال‌ها و معاملات ربات</h2>
+      <div id="pf"></div>
+      <div id="events" class="scroll"><div class="empty">هنوز سیگنالی صادر نشده. ربات فقط وقتی استراتژی انتخاب‌شده سیگنال بدهد و اندیکاتورهای دیگر هم (در صورت فعال بودن فیلتر تأیید) تأیید کنند عمل می‌کند.</div></div>
+    </div>
+    <div class="panel" id="tfPanel">
+      <h2>تایم‌فریم ربات <span id="tfBadge" class="badge">—</span></h2>
+      <div style="padding:0 14px 12px">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <select id="tfSel" class="navbtn" style="color:var(--text)">
+            <option value="1">۱ دقیقه</option><option value="5">۵ دقیقه</option><option value="15">۱۵ دقیقه</option><option value="30">۳۰ دقیقه</option>
+            <option value="60">۱ ساعت</option><option value="240">۴ ساعت</option><option value="D">روزانه</option><option value="W">هفتگی</option>
+          </select>
+          <button id="tfApply" class="runbtn">اعمال روی ربات</button>
+        </div>
+        <details style="margin-top:6px"><summary class="muted" style="cursor:pointer;font-size:12px">توضیح (بخوانید)</summary>
+          <div class="muted" style="font-size:12px;line-height:1.9;margin-top:4px">
+            ربات برای هر <b>کندلِ بسته‌شده</b> به اندازه‌ی این تایم‌فریم یک بار تصمیم می‌گیرد؛ مثلاً با ۱۵ دقیقه، هر ۱۵ دقیقه یک بار سیگنال بررسی می‌شود.
+            <b>تایم‌فریمِ تب بک‌تست فقط چیزی است که دارید آزمایش می‌کنید</b> و ربات را عوض نمی‌کند؛ ربات همین‌جا تعیین می‌شود (یا با دکمه‌ی «اعمال» بعد از جستجوی بهترین تنظیمات).
+            نتیجه‌ی بک‌تست فقط برای همان تایم‌فریمی که آزمایش شده معتبر است: اگر روی ۱ ساعت آزمایش کرده‌اید، ربات را هم روی ۱ ساعت بگذارید.
+            با تغییر، همه‌ی نمادها همان لحظه روی کندل جدید می‌روند (ری‌استارت لازم نیست) و تا بسته‌شدن اولین کندل جدید سیگنالی صادر نمی‌شود. پوزیشن‌های بازِ فعلی با استاپ/هدف خودشان می‌مانند.
+          </div>
+        </details>
+      </div>
+    </div>
+    <details class="panel" id="tgPanel">
+      <summary style="cursor:pointer;padding:10px 14px;font-weight:700">اتصال تلگرام (هشدار و کنترل از موبایل) <span id="tgBadge" class="badge">—</span></summary>
+      <div style="padding:0 14px 12px">
+        <div class="muted" style="font-size:12px;line-height:1.9">
+          ۱) در تلگرام به <b>@BotFather</b> پیام بدهید، <code>/newbot</code> بزنید و <b>توکن</b> را بگیرید.
+          ۲) توکن را پایین بچسبانید و «ذخیره» را بزنید.
+          ۳) در تلگرام به ربات خودتان یک پیام بدهید (مثلاً <code>/start</code>).
+          ۴) «پیدا کردن خودکار شناسه‌ی چت» را بزنید، بعد «پیام آزمایشی».
+        </div>
+        <label class="muted" style="font-size:12px;display:block;margin-top:8px">توکن ربات <span id="tgTokenHint"></span></label>
+        <input id="tgToken" type="password" autocomplete="off" placeholder="123456789:AAH..." style="width:100%">
+        <label class="muted" style="font-size:12px;display:block;margin-top:8px">شناسه‌ی چت (یک عدد)</label>
+        <input id="tgChat" type="text" inputmode="numeric" placeholder="پیدا کردن خودکار را بزنید" style="width:100%">
+        <label class="muted" style="font-size:12px;display:block;margin-top:8px">پروکسی HTTP برای تلگرام (اختیاری؛ اگر تلگرام فیلتر است)</label>
+        <input id="tgProxy" type="text" placeholder="http://127.0.0.1:10809" style="width:100%">
+        <div class="muted" style="font-size:11px;line-height:1.8;margin-top:4px">پروکسی فقط برای تلگرام است (نه داده‌ی بازار و نه صرافی)، و SOCKS پشتیبانی نمی‌شود. اگر برنامه‌ی VPN شما پورت HTTP ندارد، VPN را برای کل کامپیوتر روشن کنید و این خانه را خالی بگذارید.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          <button id="tgSave" class="runbtn">ذخیره</button>
+          <button id="tgDetect" class="runbtn secondary">پیدا کردن خودکار شناسه‌ی چت</button>
+          <button id="tgFindProxy" class="runbtn secondary">پیدا کردن خودکار پروکسی</button>
+          <button id="tgTest" class="runbtn secondary">پیام آزمایشی</button>
+          <button id="tgClear" class="runbtn secondary">پاک‌کردن تنظیمات ذخیره‌شده</button>
+        </div>
+        <div id="tgMsg" class="muted" style="font-size:12px;line-height:1.8;margin-top:8px;white-space:pre-wrap"></div>
+        <div class="muted" style="font-size:11px;line-height:1.8;margin-top:6px">توکن مثل یک رمز است: روی همین کامپیوتر در فایل <code>telegram.local.json</code> ذخیره می‌شود (مثل <code>.env</code>) و دوباره به مرورگر فرستاده نمی‌شود. فقط چتی که اینجا ثبت شده دستور می‌دهد.</div>
+      </div>
+    </details>
+    <div class="panel" id="stopsPanel">
+      <h2>استاپ سمت صرافی (کریپتو، حالت live) <span id="stopsBadge" class="badge">—</span></h2>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer"><input type="checkbox" id="stopsToggle" style="width:auto"> <span id="stopsLabel">در حال خواندن…</span></label>
+      <div id="sysRow" class="muted" style="font-size:12px;margin-top:6px;line-height:1.8"></div>
+      <details style="margin-top:6px"><summary class="muted" style="cursor:pointer;font-size:12px">توضیح: روشن یا خاموش؟ (بخوانید)</summary>
+      <div class="muted" style="line-height:1.9;font-size:12px;margin-top:8px">
+        <b>روشن (پیشنهادی):</b> بعد از هر خرید واقعی، یک سفارش حد ضرر روی خود صرافی گذاشته می‌شود. اگر برنامه، سرور یا اینترنت قطع شود، صرافی خودش پوزیشن را می‌بندد.
+        اگر گذاشتن استاپ دو بار جواب ندهد، پوزیشن همان لحظه فروخته می‌شود تا بدون استاپ نماند؛ و اگر صرافی اصلاً سفارش استاپ را پشتیبانی نکند، خرید انجام نمی‌شود.<br>
+        <b>خاموش:</b> فقط استاپ نرم‌افزاری داخل همین برنامه کار می‌کند. اگر برنامه، سرور یا اینترنت قطع شود، پوزیشن باز هیچ استاپی ندارد. فقط وقتی خاموش کنید که صرافی‌تان استاپ را نمی‌پذیرد و ریسکش را قبول دارید.<br>
+        اثر آن روی پوزیشن‌های بازِ فعلی: خاموش‌کردن، استاپ‌های موجود روی صرافی را دست‌نخورده می‌گذارد ولی دیگر با تریلینگ جابه‌جا نمی‌کند؛ روشن‌کردن برای پوزیشن‌های بدون استاپ، با ری‌استارت بعدی استاپ می‌گذارد (خریدهای جدید همان لحظه استاپ می‌گیرند).
+        <br>فقط روی کریپتو اثر دارد؛ سهام و فارکس استاپ را همیشه سمت بروکر می‌گذارند. این کلید فقط در <code>MODE=live</code> کاری می‌کند.
+      </div>
+      </details>
+    </div>
+  </div>
+</main>
+
+<main id="btView">
+  <div class="panel">
+    <h2>بک‌تست (روی همین تنظیمات config.js)</h2>
+    <div class="btform">
+      <div class="field grow">
+        <label>نمادها — روی هرکدام بزن تا انتخاب یا برداشته شود <span id="btSymCount"></span></label>
+        <div id="btSymPicker"></div>
+        <div id="btPresets" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+          <button type="button" class="runbtn secondary" style="padding:2px 10px;font-size:11px" data-pre="all">همه‌ی نمادهای دیده‌بان</button>
+          <button type="button" class="runbtn secondary" style="padding:2px 10px;font-size:11px" data-pre="crypto">دیده‌بان: کریپتو</button>
+          <button type="button" class="runbtn secondary" style="padding:2px 10px;font-size:11px" data-pre="stock">دیده‌بان: سهام</button>
+          <button type="button" class="runbtn secondary" style="padding:2px 10px;font-size:11px" data-pre="forex">دیده‌بان: فارکس و فلزات</button>
+          <button type="button" class="runbtn secondary" style="padding:2px 10px;font-size:11px" data-pre="none">پاک‌کردن انتخاب</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input id="btSymCustom" placeholder="نماد دیگر (اختیاری)، مثل BINANCE:ARBUSDT" style="flex:1;direction:ltr">
+          <button type="button" id="btSymAdd" class="runbtn secondary" style="padding:2px 12px;font-size:11px">افزودن</button>
+        </div>
+        <div class="muted" style="margin-top:4px;line-height:1.7">نقطه‌ی سبز ● = در لیست دیده‌بان ربات است (از <code>SYMBOLS</code> در <code>.env</code> یا <code>config.js</code>). اگر هیچ نمادی انتخاب نشود، همه‌ی نمادهای دیده‌بان اجرا می‌شود.</div>
+      </div>
+      <div class="field grow">
+        <label for="btStrategy">استراتژی</label>
+        <select id="btStrategy"></select>
+        <div id="btStrategyDesc" class="muted" style="margin-top:2px;line-height:1.7"></div>
+      </div>
+      <div class="field">
+        <label for="btTf">تایم‌فریم</label>
+        <select id="btTf">
+          <option value="1">۱ دقیقه</option><option value="5">۵ دقیقه</option>
+          <option value="15" selected>۱۵ دقیقه</option><option value="60">۱ ساعت</option>
+          <option value="240">۴ ساعت</option><option value="D">روزانه</option>
+          <option value="W">هفتگی</option><option value="M">ماهانه</option>
+        </select>
+      </div>
+      <div id="tfWarn" class="muted" style="display:none;color:var(--amber);font-size:12px;line-height:1.8;max-width:260px"></div>
+      <div class="field">
+        <label for="btCandles">تعداد کندل</label>
+        <input id="btCandles" type="number" value="2000" min="300" max="500000" step="100">
+      </div>
+      <div class="field">
+        <label for="btSource" title="TradingView: کندل‌هایی که ربات می‌بیند (چند هزار کندل آخر + آرشیو خودش). MetaTrader: تاریخچه‌ی بلندی که با اسکریپت TvHubExport از MetaTrader گرفته و با «npm run import-mt5» وارد کرده‌ای؛ جدا از داده‌ی TradingView نگه‌داری می‌شود.">منبع داده</label>
+        <select id="btSource">
+          <option value="tv" selected>TradingView</option>
+          <option value="mt5">MetaTrader (واردشده)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label><input id="btRefresh" type="checkbox" style="width:auto"> دانلود دوباره‌ی داده</label>
+      </div>
+      <button id="btRun" class="runbtn">اجرای بک‌تست</button>
+      <button id="btSweep" class="runbtn secondary">جستجوی بهترین تنظیمات (Sweep)</button>
+    </div>
+    <div style="padding:0 12px 12px">
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;margin-bottom:6px"><input id="peEnabled" type="checkbox" style="width:auto"> خروج پلکانی (به‌جای بستن یک‌جا، بخشی از سود را زودتر بردار)</label>
+      <div class="muted" style="margin-bottom:8px;line-height:1.8">به‌جای این‌که کل پوزیشن یک‌جا در هدف اصلی بسته شود، وقتی قیمت به یک نقطه‌ی نزدیک‌تر رسید بخشی از آن بسته می‌شود
+        (سود آن قطعی می‌شود) و بقیه با حد ضرر دنبال‌کننده باز می‌ماند تا اگر حرکت ادامه داشت از آن هم بهره ببری. ریسک کمتر، ولی اگر حرکت خیلی بزرگ باشد کل سود آن را نمی‌گیری.</div>
+      <div id="peFields" style="display:none;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:8px">
+        <div class="field">
+          <label for="peAtR">در چند برابر فاصله‌ی حد ضرر</label>
+          <input id="peAtR" type="number" value="1" min="0.2" max="10" step="0.1">
+        </div>
+        <div class="field">
+          <label for="peClosePct">چند درصد پوزیشن بسته شود</label>
+          <input id="peClosePct" type="number" value="50" min="1" max="100" step="5">
+        </div>
+        <div class="field">
+          <label><input id="peBreakeven" type="checkbox" style="width:auto" checked> حد ضرر باقی‌مانده به نقطه‌ی ورود منتقل شود</label>
+        </div>
+        <button id="peApply" type="button" class="runbtn secondary" style="padding:5px 12px;font-size:12px">اعمال همین تنظیمات روی ربات</button>
+      </div>
+    </div>
+    <div id="btStatus"></div>
+    <div id="btOverrideBar" style="display:none;padding:0 12px 12px;font-size:12px;color:var(--amber)"></div>
+    <div id="btResults"></div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h2>مقایسه هم‌زمان چند تایم‌فریم و استراتژی (یک نماد)</h2>
+    <div class="btform">
+      <div class="field grow">
+        <label for="mxSymbol">نماد (یکی)</label>
+        <select id="mxSymbol"></select>
+      </div>
+      <div class="field">
+        <label for="mxDays">بازه‌ی بررسی (روز) — برای همه‌ی تایم‌فریم‌ها یکسان</label>
+        <input id="mxDays" type="number" value="180" min="14" max="1500" step="10">
+      </div>
+      <div class="field">
+        <label for="mxSource">منبع داده</label>
+        <select id="mxSource">
+          <option value="tv" selected>TradingView</option>
+          <option value="mt5">MetaTrader (واردشده)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label><input id="mxRefresh" type="checkbox" style="width:auto"> دانلود دوباره‌ی داده</label>
+        <label title="۲۵٪ آخر بازه از هر تصمیم کنار گذاشته می‌شود و فقط نامزدهای نهایی یک بار روی آن آزمایش می‌شوند. معاملات کمتری برای داوری می‌ماند، ولی نتیجه بسیار قابل‌اعتمادتر است."><input id="mxHoldout" type="checkbox" checked style="width:auto"> آزمون نهایی روی ۲۵٪ آخر (داده‌ی دیده‌نشده)</label>
+      </div>
+    </div>
+    <div style="padding:0 12px 10px">
+      <div class="muted" style="margin-bottom:4px">تایم‌فریم‌ها:</div>
+      <div id="mxTfs" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div class="muted" style="margin-bottom:4px">استراتژی‌ها:</div>
+      <div id="mxStrats" style="display:flex;gap:12px;flex-wrap:wrap"></div>
+    </div>
+    <div style="padding:0 12px 12px"><button id="mxRun" class="runbtn">اجرای مقایسه</button></div>
+    <div id="mxStatus" style="padding:0 12px 12px;font-size:13px;color:var(--muted)"></div>
+    <div id="mxCharts" style="display:none;padding:0 12px 12px"></div>
+    <div id="mxResults" style="display:none;padding:0 12px 16px"></div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h2>استراتژی با توضیح به زبان ساده (هوش مصنوعی)</h2>
+    <div style="padding:12px">
+      <div class="muted" style="line-height:1.8;margin-bottom:8px">ایده‌ات را بنویس؛ AI آن را به «قاعده» تبدیل می‌کند، نه کد. قاعده‌ها فقط مقایسه‌ی اندیکاتورها هستند و کد AI هیچ‌وقت اجرا نمی‌شود. چیزی ذخیره یا معامله نمی‌شود مگر خودت «ذخیره» را بزنی، و بعد هم مثل هر استراتژی دیگر باید از بک‌تست و آمار رد شود.</div>
+      <textarea id="aiText" class="aitext" rows="4" maxlength="1000" placeholder="مثلاً: وقتی قیمت بالای EMA صد بود و RSI زیر ۳۵ رفت بخر؛ وقتی قیمت زیر EMA صد آمد بفروش"></textarea>
+      <div style="margin-top:8px"><button id="aiGen" class="runbtn" style="padding:10px 20px">پیشنهاد استراتژی</button><span id="aiMsg" style="margin-inline-start:10px;font-size:13px"></span></div>
+      <div id="aiPreview"></div>
+      <details class="aibox" id="aiManualBox"><summary style="cursor:pointer;color:var(--amber)">بدون کلید API: با هر چت‌بات (ChatGPT، Claude، Gemini، …)</summary>
+        <div class="muted" style="margin-top:6px;line-height:1.9">۱) ایده را بالا بنویس و «ساخت متن آماده» را بزن. ۲) متن را در چت‌بات بچسبان. ۳) پاسخ (JSON) را همین‌جا بچسبان و «بررسی پاسخ» را بزن. چیزی از این برنامه به جایی فرستاده نمی‌شود و پاسخ دقیقاً همان بررسی ایمنی را رد می‌کند.</div>
+        <button id="aiPromptBtn" class="runbtn secondary" style="padding:8px 16px;margin-top:6px">ساخت متن آماده</button>
+        <div id="aiPromptWrap" style="display:none;margin-top:8px">
+          <textarea id="aiPromptOut" class="aitext" rows="5" readonly style="font-size:12px;direction:ltr;text-align:left"></textarea>
+          <button id="aiCopy" class="runbtn secondary" type="button" style="padding:6px 14px;margin-top:6px">کپی</button>
+        </div>
+        <textarea id="aiReply" class="aitext" rows="5" placeholder="پاسخ چت‌بات (JSON) را اینجا بچسبان" style="margin-top:10px;font-size:12px;direction:ltr;text-align:left"></textarea>
+        <button id="aiParse" class="runbtn secondary" style="padding:8px 16px;margin-top:6px">بررسی پاسخ</button>
+      </details>
+      <details class="aibox" id="aiSetBox"><summary style="cursor:pointer;color:var(--amber)">تنظیمات هوش مصنوعی (کلید API)</summary>
+        <div id="aiStatus" class="muted" style="margin:6px 0;line-height:1.9"></div>
+        <div id="aiPresets" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px"><span class="muted" style="font-size:13px">انتخاب سریع:</span>
+          <button type="button" class="runbtn secondary" data-p="ollamacloud" style="padding:4px 10px;font-size:12px">Ollama Cloud (کلید API)</button>
+          <button type="button" class="runbtn secondary" data-p="gemini" style="padding:4px 10px;font-size:12px">Google Gemini</button>
+          <button type="button" class="runbtn secondary" data-p="openai" style="padding:4px 10px;font-size:12px">OpenAI</button>
+          <button type="button" class="runbtn secondary" data-p="deepseek" style="padding:4px 10px;font-size:12px">DeepSeek</button>
+          <button type="button" class="runbtn secondary" data-p="openrouter" style="padding:4px 10px;font-size:12px">OpenRouter</button>
+          <button type="button" class="runbtn secondary" data-p="claude" style="padding:4px 10px;font-size:12px">Claude</button></div>
+        <div class="btform cbform" style="padding:0 0 8px">
+          <div class="field"><label for="aiProvider">سرویس</label><select id="aiProvider"><option value="anthropic">Claude (Anthropic)</option><option value="openai">سازگار با OpenAI (OpenAI، Gemini، DeepSeek، OpenRouter، Ollama…)</option></select></div>
+          <div class="field grow"><label for="aiModel">نام مدل</label><input id="aiModel" maxlength="100" placeholder="نام مدل را از سرویس خودت بنویس" dir="ltr"></div>
+          <div class="field grow"><label for="aiBase">آدرس سرویس (اختیاری)</label><input id="aiBase" maxlength="200" placeholder="https://..." dir="ltr"></div>
+          <div class="field grow"><label for="aiProxy">پروکسی HTTP (اختیاری)</label><input id="aiProxy" maxlength="200" placeholder="http://127.0.0.1:10809" dir="ltr"></div>
+          <div class="field grow"><label for="aiKey">کلید API</label><input id="aiKey" type="password" autocomplete="off" placeholder="برای تغییر، کلید تازه را بنویس" dir="ltr"></div>
+        </div>
+        <button id="aiSave" class="runbtn" style="padding:8px 16px">ذخیره</button>
+        <button id="aiPing" class="runbtn secondary" style="padding:8px 16px">آزمایش اتصال</button>
+        <button id="aiUseTgProxy" class="runbtn secondary" style="padding:8px 16px">استفاده از پروکسی تلگرام</button>
+        <button id="aiClearKey" class="runbtn secondary" style="padding:8px 16px">حذف کلید</button>
+        <span id="aiSetMsg" style="margin-inline-start:10px;font-size:13px"></span>
+        <div class="warn" style="margin-top:8px;line-height:1.8">کلید فقط روی خود سرور (فایل <code>ai-settings.json</code> با دسترسی محدود) ذخیره می‌شود و هیچ‌وقت به مرورگر برنمی‌گردد. می‌توانی آن را در <code>.env</code> هم بگذاری (<code>AI_API_KEY</code>)؛ مقدار .env اولویت دارد. پروکسی (اگر بنویسی) برای همین بخش و دستیار استفاده می‌شود و فقط از نوع HTTP است؛ کلید و متن درخواست از مسیر همان پروکسی رد می‌شود، پس فقط پروکسی/VPN قابل‌اعتماد بگذار. هر درخواست هزینه‌ی کوچکی روی حساب خودت دارد و در هر ساعت سقف دارد.</div>
+      </details>
+      <div id="aiList"></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h2>آزمایشگاه یادگیری ماشین (آزمون صادقانه روی کندل‌های آرشیو)</h2>
+    <div style="padding:12px">
+      <div class="muted" style="line-height:1.8;margin-bottom:8px">یک مدل کوچک فقط با کندل‌های <b>گذشته</b> آموزش می‌بیند و بعد روی بازه‌ی بعدی که هرگز ندیده امتحان می‌شود؛ این کار چند بار با پنجره‌ی رو‌به‌جلو تکرار می‌شود. هزینه‌ی معامله هم حساب می‌شود و نتیجه با «ورود تصادفی» مقایسه می‌شود. این بخش <b>هیچ معامله‌ای انجام نمی‌دهد</b> و فقط گزارش می‌دهد. بیشتر وقت‌ها جواب صادقانه «لبه‌ای پیدا نشد» است.</div>
+      <div class="btform cbform" style="padding:0 0 8px">
+        <div class="field"><label for="mlTf">فقط این تایم‌فریم</label><select id="mlTf"></select></div>
+        <div class="field grow"><label for="mlFile">آرشیو کندل (نماد_تایم‌فریم)</label><select id="mlFile"></select></div>
+        <div class="field"><label for="mlModel">مدل</label><select id="mlModel"><option value="logistic">لجستیک (ساده و محتاط)</option><option value="boost">درخت‌های تقویتی (قوی‌تر)</option></select></div>
+        <div class="field"><label for="mlHorizon">حداکثر طول معامله (کندل)</label><input id="mlHorizon" type="number" min="3" max="100" value="20"></div>
+        <div class="field"><label for="mlSl">حد ضرر (× ATR)</label><input id="mlSl" type="number" min="0.3" max="6" step="0.1" value="1.5"></div>
+        <div class="field"><label for="mlRr">حد سود (× حد ضرر)</label><input id="mlRr" type="number" min="0.5" max="5" step="0.1" value="1.5"></div>
+        <div class="field"><label for="mlCost">هزینه‌ی رفت‌وبرگشت (× ATR)</label><input id="mlCost" type="number" min="0" max="2" step="0.01" value="0.1"></div>
+        <div class="field"><label for="mlFolds">تعداد بازه‌های آزمون</label><input id="mlFolds" type="number" min="3" max="10" value="5"></div>
+      </div>
+      <div class="btform cbform" style="padding:0 0 8px;align-items:flex-end">
+        <div class="field grow"><label>ویژگی‌های اضافه (هرکدام اطلاعات تازه برای مدل است)</label>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;padding:6px 0">
+            <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="mlFTime"> ساعت روز، روز هفته و سشن</label>
+            <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="mlFHtf"> زمینه‌ی تایم‌فریم بالاتر (روند، نوسان، سقف و کف)</label>
+            <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="mlFStruct"> ساختار بازار (حمایت و مقاومت، شکست، پولبک)</label></div></div>
+        <div class="field grow"><label for="mlRef">نماد وابسته (اختیاری؛ مثلاً DXY برای طلا یا BTC برای آلت‌کوین)</label><select id="mlRef"></select></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button id="mlRun" class="runbtn" style="padding:10px 20px">اجرای آزمون</button><button id="mlRunSweep" class="runbtn secondary" style="padding:8px 14px" title="همین آزمون با هزینه‌ی ۰، ۰٫۱ و ۰٫۲ ATR">اجرا با چند هزینه</button><button id="mlRefresh" class="runbtn secondary" style="padding:8px 14px">تازه‌کردن فهرست آرشیو</button><span id="mlMsg" class="muted" style="font-size:13px"></span></div>
+      <div id="mlSrcInfo" class="muted" style="font-size:12px;margin:6px 0;line-height:1.8"></div>
+      <details id="mlPoolBox" style="margin-top:12px;border-top:1px solid var(--border,#2a3441);padding-top:10px">
+        <summary style="cursor:pointer;font-weight:600">آزمون چندنمادی و متالیبلینگ (نمونه‌ی بیشتر، آزمون سخت‌گیرانه‌تر)</summary>
+        <div class="muted" style="line-height:1.8;margin:8px 0">چند آرشیو <b>هم‌تایم‌فریم</b> انتخاب کن (مثلاً BTC، ETH، SOL و … همه‌ی <code>_60</code>). یک مدل با همه‌ی آن‌ها با هم آموزش می‌بیند، چون ویژگی‌ها بر پایه‌ی ATR هستند و بین نمادها قابل‌مقایسه‌اند. در حالت پیش‌فرض نمادی که آزمون می‌شود <b>اصلاً در آموزش نیست</b> و فقط دوره‌هایی که برچسبشان قبل از شروع بازه‌ی آزمون تمام شده در آموزش می‌آید. تنظیمات بالا (مدل، حد ضرر، هزینه، بازه‌ها، ویژگی‌های زمان و تایم‌فریم بالاتر) همین‌جا هم اعمال می‌شود؛ «ساختار بازار» و «نماد وابسته» در این حالت کنار گذاشته می‌شوند (برای صدها هزار کندل کند است). اجرا چند دقیقه طول می‌کشد.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+          <button id="mlPoolAll" class="runbtn secondary" style="padding:5px 12px" title="همه‌ی آرشیوهای تایم‌فریمی که بالا انتخاب کرده‌ای">انتخاب همه‌ی این تایم‌فریم</button>
+          <button id="mlPoolNone" class="runbtn secondary" style="padding:5px 12px">پاک‌کردن انتخاب</button>
+          <span id="mlPoolCount" class="muted" style="font-size:13px"></span>
+        </div>
+        <div id="mlPoolList" style="display:flex;gap:6px 14px;flex-wrap:wrap;font-size:13px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="mlCostMode" title="فقط برای آزمون چندنمادی و متالیبلینگ"><option value="real">هزینه‌ی واقعی هر بازار (از تنظیمات ربات)</option><option value="fixed">هزینه‌ی ثابت (عدد «هزینه‌ی رفت‌وبرگشت» بالا)</option></select>
+          <label class="muted" style="font-size:13px">ضریب هزینه <input id="mlCostMult" type="number" min="0" max="5" step="0.1" value="1" style="width:70px"></label>
+          <select id="mlPoolMode"><option value="loso">نماد آزمون در آموزش نیست (سخت‌گیرانه، پیشنهادی)</option><option value="walk">همه‌ی نمادها آموزش می‌بینند، فقط جلوتر در زمان آزمون می‌شود</option></select>
+          <button id="mlPoolRun" class="runbtn" style="padding:10px 20px">اجرای آزمون چندنمادی</button>
+          <button id="mlPoolSweep" class="runbtn secondary" style="padding:8px 14px">با چند هزینه (چند برابر زمان)</button>
+        </div>
+        <div style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--border,#2a3441)">
+          <b>متالیبلینگ</b> — به‌جای حدس «بالا یا پایین» روی هر کندل، یک استراتژی سیگنال می‌دهد و مدل فقط تصمیم می‌گیرد «این سیگنال را بگیر یا رد کن».
+          <div class="muted" style="line-height:1.8;margin:6px 0">از همان آرشیوهای تیک‌خورده‌ی بالا استفاده می‌کند (۱ تا ۱۲ آرشیو هم‌تایم‌فریم؛ با چند آرشیو، همان آزمون سخت‌گیرانه‌ی «نماد آزمون در آموزش نیست»). سیگنال‌ها دقیقاً همان سیگنال‌های بک‌تست و ربات‌اند، با تنظیمات فعلی RSI و ATR. مقایسه‌ی اصلی با «گرفتن همه‌ی سیگنال‌ها» است: فیلتر باید هم بهتر از همه باشد و هم بهتر از انتخاب تصادفی هم‌اندازه. برای یک آرشیو تنها معمولاً سیگنال کافی نیست.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="mlMetaStrategy"></select>
+            <select id="mlMetaDir"><option value="long">سیگنال‌های خرید (ربات فقط لانگ می‌کند)</option><option value="short">سیگنال‌های فروش (شورت)</option></select>
+            <button id="mlMetaRun" class="runbtn" style="padding:10px 20px">اجرای متالیبلینگ</button>
+            <button id="mlMetaSweep" class="runbtn secondary" style="padding:8px 14px">با چند هزینه (چند برابر زمان)</button>
+          </div>
+        </div>
+      </details>
+      <details id="mlAutoBox" style="margin-top:12px;border-top:1px solid var(--border,#2a3441);padding-top:10px">
+        <summary style="cursor:pointer;font-weight:600">آزمایشگاه خودکار در زمان بیکاری (ترکیب‌ها را خودش می‌آزماید و بهترین‌ها را نگه می‌دارد)</summary>
+        <div class="muted" style="line-height:1.9;margin:8px 0">در ساعت‌هایی که تو تعیین می‌کنی و وقتی CPU کامپیوتر پایین است، یکی‌یکی «استراتژی × جهت × گروه آرشیوها (تایم‌فریم و بازار)» را با همان متالیبلینگ آزمایش می‌کند و نتیجه را در فایل نگه می‌دارد؛ هیچ معامله‌ای نمی‌گیرد و به ربات دست نمی‌زند. چون جست‌وجوی خودکار روی تعداد زیادی ترکیب همیشه چیزی پیدا می‌کند که از روی <b>اقبال</b> خوب به نظر می‌رسد، سه حفاظ دارد: <b>۱)</b> کندل‌های جدیدتر از «تاریخ کنارگذاری» هرگز به جست‌وجو داده نمی‌شوند و فقط برای یک «بررسی نهایی» برای هر ترکیب نگه داشته می‌شوند (کندل‌هایی که ربات از این به بعد ذخیره می‌کند هم به همین بخش اضافه می‌شود)؛ <b>۲)</b> هر p-value در جدول با ضرب در تعداد ترکیب‌های آزموده‌شده هم نشان داده می‌شود؛ <b>۳)</b> هر اجرا در دفتر پژوهش ثبت می‌شود. آزمون دستی همیشه اولویت دارد و کار پس‌زمینه را متوقف می‌کند.</div>
+        <div id="mlAutoStatus" style="line-height:1.9;font-size:13px"></div>
+        <div id="mlAutoForm" style="margin:8px 0;font-size:13px;line-height:2.2">
+          <label><input type="checkbox" id="mlAutoEnabled"> روشن باشد</label> ·
+          از ساعت <input id="mlAutoStart" type="number" min="0" max="23" style="width:60px"> تا <input id="mlAutoEnd" type="number" min="0" max="23" style="width:60px"> <span class="muted">(ساعت همین کامپیوتر؛ دو عدد برابر = همیشه)</span> ·
+          فقط وقتی CPU کمتر از <input id="mlAutoCpu" type="number" min="5" max="100" style="width:60px">٪ ·
+          مکث بین کارها <input id="mlAutoPause" type="number" min="0" max="3600" style="width:70px"> ثانیه<br>
+          جهت: <label><input type="checkbox" id="mlAutoLong"> سیگنال خرید</label> <label><input type="checkbox" id="mlAutoShort"> سیگنال فروش</label> ·
+          بازار: <label><input type="checkbox" class="mlAutoKind" value="crypto"> کریپتو</label> <label><input type="checkbox" class="mlAutoKind" value="mt5"> MetaTrader</label> <label><input type="checkbox" class="mlAutoKind" value="stock"> سهام</label> <label><input type="checkbox" class="mlAutoKind" value="forex"> فارکس TradingView</label> ·
+          کمینه‌ی آرشیو در هر گروه <input id="mlAutoMinArch" type="number" min="2" max="12" style="width:60px"><br>
+          تاریخ کنارگذاری (داده‌ی جدیدتر از آن فقط برای بررسی نهایی): <input id="mlAutoSealed" type="date"> <span class="muted">(خالی = هنگام اولین روشن‌کردن، ۹۰ روز قبل؛ بعد از اولین «بررسی نهایی» قفل می‌شود)</span><br>
+          استراتژی‌ها: <span id="mlAutoStrats"></span> <label><input type="checkbox" id="mlAutoCustom"> سفارشی و ترکیبی‌های خودم هم (احتمال اقبال را بالا می‌برد)</label><br>
+          <span class="muted">پارامترهای آزمون (مدل، افق، حد ضرر و سود، بازه‌ها، ویژگی‌ها، هزینه) همان مقدارهای فرم بالا در لحظه‌ی «ذخیره» هستند.</span><br>
+          <button id="mlAutoSave" class="runbtn" style="padding:8px 18px">ذخیره‌ی تنظیمات</button>
+          <button id="mlAutoNow" class="runbtn secondary" style="padding:8px 14px" title="یک ترکیب را همین حالا اجرا می‌کند (ساعت و CPU را نادیده می‌گیرد)">اجرای یک ترکیب همین حالا</button>
+          <button id="mlAutoReset" class="runbtn secondary" style="padding:8px 14px">پاک‌کردن همه‌ی نتایج</button>
+        </div>
+        <div id="mlAutoBoard" style="font-size:13px"></div>
+      </details>
+      <div id="mlOut" style="margin-top:12px"></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h2>استراتژی دلخواه (ترکیب چند استراتژی + فایل شخصی)</h2>
+    <div style="padding:12px">
+      <b>۱) ساخت ترکیب از استراتژی‌های موجود</b>
+      <div class="muted" style="margin:4px 0 8px;line-height:1.8">چند استراتژی را انتخاب کن و بگو چند تا از آن‌ها باید هم‌نظر باشند. مثلاً «روند + شکست سطح + MACD»، خرید وقتی ۲ از ۳ بگویند بخر. ترکیب ساخته‌شده در همه‌ی لیست‌ها (بک‌تست، مقایسه، Sweep و ربات) مثل بقیه ظاهر می‌شود. در بخش مقایسه به‌طور پیش‌فرض تیک ندارد، چون هر ترکیب اضافه یک آزمایش بیشتر است و احتمال «شانسیِ خوب» بودن را بالا می‌برد.</div>
+      <div id="cbComps" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div class="btform cbform" style="padding:0 0 10px">
+        <div class="field grow"><label for="cbName">نام ترکیب</label><input id="cbName" maxlength="60" placeholder="مثلاً: روند + شکست"></div>
+        <div class="field"><label for="cbEntry">حداقل رأی برای خرید</label><input id="cbEntry" type="number" min="1" max="6" value="2" inputmode="numeric"></div>
+        <div class="field"><label for="cbExit">حداقل رأی برای خروج</label><input id="cbExit" type="number" min="1" max="6" value="1" inputmode="numeric"></div>
+        <div class="field"><label for="cbRsiBuy">RSI خرید (اختیاری)</label><input id="cbRsiBuy" type="number" min="1" max="99" placeholder="مثلاً 40" inputmode="numeric"></div>
+        <div class="field"><label for="cbRsiSell">RSI فروش (اختیاری)</label><input id="cbRsiSell" type="number" min="1" max="99" placeholder="مثلاً 65" inputmode="numeric"></div>
+      </div>
+      <button id="cbAdd" class="runbtn" style="padding:10px 20px">ساخت ترکیب</button>
+      <span id="cbMsg" style="margin-inline-start:10px;font-size:13px"></span>
+      <div id="cbList"></div>
+    </div>
+    <div style="padding:12px;border-top:1px solid var(--line)">
+      <b>۲) فایل استراتژی شخصی (JavaScript)</b>
+      <div class="muted" style="margin:4px 0 8px;line-height:1.8">قاعده‌ی خودت را در فایل <code>custom-strategies.user.js</code> بنویس (نمونه‌ی آماده: <code>custom-strategies.example.js</code>). بعد از هر ویرایش همین‌جا «بارگذاری دوباره» را بزن؛ ری‌استارت لازم نیست.</div>
+      <div id="jsStatus" style="line-height:1.9"></div>
+      <button id="jsReload" class="runbtn secondary" style="padding:10px 20px;margin-top:6px">بارگذاری دوباره‌ی فایل</button>
+      <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--amber)">راهنما و نمونه‌ی کد</summary>
+        <div class="muted" style="margin-top:6px;line-height:1.9">هر استراتژی یک تابع <code>signal(ctx)</code> دارد که برای هر کندلِ بسته‌شده صدا زده می‌شود و <code>'buy'</code> یا <code>'sell'</code> برمی‌گرداند (هر چیز دیگر یعنی نظری ندارد). تابع «وضعیت فعلی» را می‌گوید و ربات وقتی وضعیت <b>عوض شود</b> عمل می‌کند. فقط کندل‌های تا همین لحظه دیده می‌شوند و کندل آینده هرگز در دسترس نیست.<br>
+        اندیکاتورها: <code>ctx.rsi(14)</code> <code>ctx.ema(50)</code> <code>ctx.sma(20)</code> <code>ctx.atr(14)</code> <code>ctx.macd()</code> <code>ctx.bollinger()</code> <code>ctx.highest(20)</code> <code>ctx.lowest(20)</code> <code>ctx.avgVolume(20)</code> و <code>ctx.back(1)</code> برای مقایسه با کندل قبل (تقاطع). دوره‌ها عدد صحیح ۱ تا ۲۵۰. اگر کد خطا بدهد آن کندل «بدون سیگنال» حساب می‌شود و پیام خطا همین‌جا و در گزارش نشان داده می‌شود.</div>
+        <div class="cbcode">module.exports = [{
+  id: 'pullback',            // becomes js_pullback
+  name: 'اصلاح در روند صعودی',
+  description: 'بالای EMA100 و RSI زیر 40 → خرید',
+  signal(ctx) {
+    const trend = ctx.ema(100), r = ctx.rsi(14);
+    if (trend === null || r === null) return 'none';
+    if (ctx.close &lt; trend) return 'sell';
+    if (r &lt; 40) return 'buy';
+    return 'hold';
+  },
+}];</div>
+        <div class="warn">این فایل روی خود سرور اجرا می‌شود (محدودیت امنیتی ندارد)؛ فقط کدی را بگذار که خودت نوشته‌ای یا می‌فهمی. پیش از پول واقعی، استراتژی را در بک‌تست (روی چند نماد و بازه) و بعد چند هفته در حالت paper امتحان کن.</div>
+      </details>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h2>تاریخچه‌ی بک‌تست‌ها <button id="btHistClear" class="runbtn secondary" style="float:left;padding:2px 10px;font-size:11px">پاک کردن</button></h2>
+    <div id="btHistory" class="scroll" style="max-height:300px"></div>
+  </div>
+</main>
+
+<main id="anaView">
+  <div class="panel">
+    <h2>گزارش عملکرد ربات (معاملاتی که ربات واقعاً انجام داده)</h2>
+    <div class="repbar">
+      <select id="anaDays" class="navbtn" style="color:var(--text)">
+        <option value="7">۷ روز اخیر</option><option value="30" selected>۳۰ روز اخیر</option>
+        <option value="90">۹۰ روز اخیر</option><option value="all">همه‌ی زمان‌ها</option>
+      </select>
+      <button id="anaRefresh" class="runbtn secondary">به‌روزرسانی</button>
+      <a id="anaCsv" href="/api/report/trades.csv?days=all" download>دانلود همه‌ی معاملات (CSV)</a>
+    </div>
+    <div id="anaBody"><div class="empty">در حال بارگذاری…</div></div>
+  </div>
+  <div class="panel" id="eviPanel">
+    <h2>شواهد جلورونده: ربات واقعاً چه کرد، بک‌تست چه می‌گفت؟</h2>
+    <div class="muted" style="font-size:12px;line-height:1.9;margin-bottom:8px">
+      نتیجه‌ی بک‌تست فقط درباره‌ی گذشته است. تنها مدرک واقعی، معامله‌هایی است که ربات (در حالت سیگنال/آزمایشی/زنده) در هفته‌های اخیر انجام داده.
+      این بخش همان هفته‌ها و همان نمادها را دوباره بک‌تست می‌کند و کنار نتیجه‌ی واقعی می‌گذارد: آیا ورودی‌ها یکی است؟ آیا نتیجه‌ها هم‌خوان است؟ و آیا معامله‌ی کافی (حداقل ۳۰) هست که درباره‌ی سود حرفی بزنیم؟
+      خودش هر ۷ روز اجرا می‌شود و در تلگرام گزارش می‌دهد (با <code>EVIDENCE_EVERY_DAYS</code> در <code>.env</code> عوض می‌شود؛ <code>off</code> = خاموش). هیچ تنظیمی را تغییر نمی‌دهد و سفارشی نمی‌دهد.
+    </div>
+    <div class="repbar">
+      <select id="eviDays" class="navbtn" style="color:var(--text)"><option value="14">۱۴ روز اخیر</option><option value="30" selected>۳۰ روز اخیر</option><option value="60">۶۰ روز اخیر</option><option value="90">۹۰ روز اخیر</option></select>
+      <button id="eviRun" class="runbtn">همین حالا بررسی کن</button>
+    </div>
+    <div id="eviBody" class="muted" style="white-space:pre-wrap;line-height:1.9;margin-top:8px"></div>
+    <div id="eviArchive" class="muted" style="font-size:12px;margin-top:10px;line-height:1.8"></div>
+  </div>
+</main>
+
+<main id="asView">
+  <div class="panel">
+    <h2>دستیار تحلیل</h2>
+    <div class="as-note muted">تحلیل هر استراتژی روی یک نماد و تایم‌فریم: چه می‌بیند، شرط ورود، حد ضرر و سود، و احتمال رسیدن به هدف قبل از حد ضرر. همه‌ی عددها را برنامه حساب می‌کند؛ هوش مصنوعی (اختیاری) فقط متن را روان‌تر می‌کند و هر عدد خارج از تحلیل را رد می‌کنیم. این توصیه‌ی مالی نیست.</div>
+    <div class="as-form">
+      <div class="field grow"><label for="asSymbol">نماد</label><input id="asSymbol" list="asSymbols" dir="ltr" maxlength="40" autocomplete="off" placeholder="OANDA:XAUUSD یا XAUUSD"><datalist id="asSymbols"></datalist></div>
+      <div class="field"><label for="asTf">تایم‌فریم</label><select id="asTf"><option value="15">۱۵ دقیقه</option><option value="60" selected>۱ ساعت</option><option value="240">۴ ساعت</option><option value="D">روزانه</option></select></div>
+      <div class="field"><label for="asSource">منبع داده</label><select id="asSource"><option value="auto" selected>خودکار (MT5 زنده، وگرنه آرشیو)</option><option value="live">فقط MT5 زنده</option><option value="archive">آرشیو کندل</option><option value="mt5">آرشیو MetaTrader</option></select></div>
+      <label class="as-check"><input type="checkbox" id="asAi" checked> بازنویسی با هوش مصنوعی (اگر راه‌اندازی شده)</label>
+    </div>
+    <div class="as-form"><button id="asGo" class="runbtn as-big" type="button">تحلیل کن</button><button id="asCal" class="runbtn secondary as-big" type="button">آزمودن اعتبار احتمال‌ها</button></div>
+    <div id="asMsg"></div>
+    <div id="asOut" class="as-pad"></div>
+  </div>
+  <div class="panel as-ask">
+    <h2>از دستیار بپرس</h2>
+    <div class="as-pad">
+      <textarea id="asQ" rows="3" maxlength="600" placeholder="مثلاً: چرا استراتژی شکست سطح الان وارد نمی‌شود؟ یا: بک‌تست مقایسه را چطور اجرا کنم؟"></textarea>
+      <label class="as-check"><input type="checkbox" id="asQWith" checked> تحلیل نماد و تایم‌فریم بالا را هم در نظر بگیر</label>
+      <button id="asAsk" class="runbtn as-big" type="button">بپرس</button>
+      <div id="asAns"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>هوش مصنوعی محلی رایگان (Ollama)</h2>
+    <div class="as-note muted">Ollama روی همین کامپیوتر اجرا می‌شود؛ چیزی به اینترنت نمی‌رود و هزینه ندارد. بعد از نصب، برنامه آن را خودکار پیدا می‌کند و با یک ضربه روی نام مدل وصل می‌شود. هر سرویس دیگری (Claude، OpenAI، Gemini…) را هم از «تنظیمات هوش مصنوعی» در تب بک‌تست می‌شود وصل کرد.</div>
+    <div id="asOllama" class="as-pad"></div>
+  </div>
+</main>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+// Separate <script> on purpose: if the main script above stops early (e.g. the TradingView chart library could not be downloaded),
+// this safety switch must still load and work.
+const g = (id) => document.getElementById(id);
+// ---------- exchange-stops switch ----------
+async function loadStops() {
+  try {
+    const r = await (await fetch('/api/live/exchange-stops')).json();
+    g('stopsToggle').checked = r.enabled;
+    g('stopsLabel').textContent = r.enabled ? 'روشن — استاپ روی صرافی گذاشته می‌شود' : 'خاموش — فقط استاپ نرم‌افزاری';
+    g('stopsBadge').textContent = r.enabled ? 'روشن' : 'خاموش';
+    g('stopsBadge').style.color = r.enabled ? '' : 'var(--amber)';
+    g('stopsPanel').dataset.mode = r.mode;
+  } catch {}
+}
+let sysTimer = null;
+async function loadSys() {
+  const row = g('sysRow');
+  try {
+    const r = await (await fetch('/api/system')).json();
+    if (r.installing) { row.textContent = '⏳ در حال نصب کتابخانه‌ی صرافی… (چند دقیقه صبر کنید؛ این صفحه را نبندید)'; clearTimeout(sysTimer); sysTimer = setTimeout(loadSys, 3000); return; }
+    if (r.ccxt.installed) { row.innerHTML = `کتابخانه‌ی اتصال به صرافی (ccxt): ✓ نصب است (نسخه ${r.ccxt.version}).`; return; }
+    if (r.ccxt.error) { row.innerHTML = `کتابخانه‌ی اتصال به صرافی (ccxt): <b style="color:var(--amber)">✗ کار نمی‌کند</b> — ${String(r.ccxt.error).replace(/[<>&]/g, '')}<br>برای سفارش واقعی کریپتو باید Node را به نسخه‌ی ۲۰٫۱۹ یا بالاتر (بهتر: ۲۲ LTS) ارتقا بدهید. سیگنال و آزمایشی بدون آن کار می‌کنند.`; return; }
+    row.innerHTML = `کتابخانه‌ی اتصال به صرافی (ccxt): <b style="color:var(--amber)">✗ نصب نیست</b> — فقط برای <b>سفارش واقعی کریپتو</b> لازم است؛ حالت سیگنال و آزمایشی بدون آن کار می‌کند. <button id="sysInstall" class="runbtn secondary" style="padding:1px 10px;font-size:11px">نصب (نیاز به اینترنت)</button>${r.last && !r.last.ok ? `<div style="color:var(--amber)">نصب قبلی ناموفق بود: ${String(r.last.message).replace(/[<>&]/g, '')}<br>اگر اینترنت فیلتر است، VPN را روشن کنید و دوباره بزنید.</div>` : ''}`;
+    g('sysInstall').addEventListener('click', async () => {
+      g('sysInstall').disabled = true;
+      try { await fetch('/api/system/install-ccxt', { method: 'POST' }); } catch {}
+      loadSys();
+    });
+  } catch { row.textContent = ''; }
+}
+loadSys();
+g('stopsToggle').addEventListener('change', async (e) => {
+  const want = e.target.checked;
+  const msg = want
+    ? 'استاپ سمت صرافی روشن شود؟ از خرید بعدی هر پوزیشن کریپتو یک سفارش حد ضرر روی صرافی هم می‌گیرد.'
+    : 'هشدار: با خاموش‌کردن، اگر برنامه/سرور/اینترنت قطع شود پوزیشن‌های جدید هیچ استاپی ندارند و ضرر می‌تواند از حد تعیین‌شده بیشتر شود.\n\nواقعاً خاموش شود؟';
+  if (!confirm(msg)) { e.target.checked = !want; return; }
+  try {
+    const res = await fetch('/api/live/exchange-stops', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: want }) });
+    if (!res.ok) throw new Error();
+  } catch { alert('ذخیره نشد.'); }
+  loadStops();
+});
+loadStops();
+</script>
+<script>
+const ge = (id) => document.getElementById(id);
+const esc2 = (t) => String(t).replace(/[<>&]/g, '');
+function showEvidence(r) {
+  if (!r) { ge('eviBody').textContent = 'هنوز گزارشی ساخته نشده. دکمه‌ی بالا را بزنید (یا صبر کنید تا هفته‌ی اول تمام شود).'; return; }
+  if (r.error) { ge('eviBody').textContent = '⚠️ ' + r.error; return; }
+  ge('eviBody').textContent = r.text + '\n(ساخته‌شده: ' + new Date(r.time).toLocaleString(TVLANG==='en'?'en':'fa-IR') + ')';
+}
+async function loadEvidence() {
+  try {
+    const r = await (await fetch('/api/evidence')).json();
+    showEvidence(r.latest);
+    const a = r.archive || [];
+    const total = a.reduce((x, y) => x + y.candles, 0);
+    ge('eviArchive').textContent = a.length
+      ? `آرشیو کندل‌ها (برای بک‌تست‌های درازتر در آینده): ${a.length} فایل، ${total.toLocaleString(TVLANG==='en'?'en':'fa-IR')} کندل ذخیره‌شده. هر کندلی که برنامه می‌بیند ذخیره می‌شود؛ هر چه بیشتر روشن بماند تاریخچه بلندتر می‌شود.`
+      : 'آرشیو کندل‌ها هنوز خالی است؛ با روشن‌ماندن برنامه خودش پر می‌شود.';
+  } catch {}
+}
+ge('eviRun').addEventListener('click', async () => {
+  ge('eviRun').disabled = true; ge('eviBody').textContent = '⏳ در حال بررسی… (ممکن است یک دقیقه طول بکشد)';
+  try {
+    const r = await (await fetch('/api/evidence/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ days: Number(ge('eviDays').value) }) })).json();
+    showEvidence(r);
+  } catch { ge('eviBody').textContent = '⚠️ بررسی انجام نشد.'; }
+  ge('eviRun').disabled = false; loadEvidence();
+});
+loadEvidence();
+</script>
+<script>
+const gt = (id) => document.getElementById(id);
+const tgSay = (t, bad) => { gt('tgMsg').textContent = t; gt('tgMsg').style.color = bad ? 'var(--amber)' : ''; };
+function tgShow(v) {
+  gt('tgBadge').textContent = v.enabled ? 'وصل' : 'تنظیم نشده';
+  gt('tgBadge').style.color = v.enabled ? '' : 'var(--amber)';
+  gt('tgTokenHint').textContent = v.hasToken ? `(ذخیره شده، پایان …${v.tokenHint}؛ برای نگه‌داشتن، خالی بگذارید)` : '';
+  if (document.activeElement !== gt('tgChat')) gt('tgChat').value = v.chatId || '';
+  if (document.activeElement !== gt('tgProxy')) gt('tgProxy').value = v.proxy || '';
+}
+async function tgCall(method, path, body) {
+  const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  return { status: r.status, data: await r.json().catch(() => ({})) };
+}
+async function tgLoad() { try { tgShow((await tgCall('GET', '/api/telegram')).data); } catch {} }
+gt('tgSave').addEventListener('click', async () => {
+  const body = { chatId: gt('tgChat').value, proxy: gt('tgProxy').value };
+  if (gt('tgToken').value.trim()) body.token = gt('tgToken').value;
+  const r = await tgCall('POST', '/api/telegram', body);
+  if (r.status !== 200) return tgSay(r.data.error || 'ذخیره نشد.', true);
+  gt('tgToken').value = ''; tgShow(r.data);
+  tgSay(r.data.enabled ? 'ذخیره شد. «پیام آزمایشی» را بزنید.' : 'ذخیره شد، ولی هنوز توکن یا شناسه‌ی چت کم است.');
+});
+gt('tgDetect').addEventListener('click', async () => {
+  if (gt('tgToken').value.trim()) { const s = await tgCall('POST', '/api/telegram', { token: gt('tgToken').value }); if (s.status !== 200) return tgSay(s.data.error, true); gt('tgToken').value = ''; }
+  tgSay('⏳ در حال خواندن پیام‌های ربات…');
+  const r = await tgCall('POST', '/api/telegram/detect');
+  if (!r.data.ok) return tgSay(r.data.error || 'پیدا نشد.', true);
+  tgShow(r.data); tgSay(`پیدا شد: ${r.data.name || ''} (${r.data.chatId}). حالا «پیام آزمایشی» را بزنید.`);
+});
+gt('tgFindProxy').addEventListener('click', async () => {
+  tgSay('⏳ در حال جست‌وجوی پروکسی روی همین کامپیوتر (چند ثانیه)…');
+  const r = await tgCall('POST', '/api/telegram/find-proxy');
+  if (!r.data.ok) return tgSay(`پروکسی کارکننده پیدا نشد (${r.data.tried} آدرس امتحان شد). برنامه‌ی فیلترشکن (مثلاً v2rayN یا Clash) روشن است؟ اگر پورت HTTP آن را می‌دانید، در خانه‌ی پروکسی بنویسید؛ وگرنه VPN را در حالت «کل سیستم / TUN» روشن کنید.`, true);
+  tgShow(r.data); tgSay(`پروکسی پیدا و ذخیره شد: ${r.data.proxy}\nحالا «پیام آزمایشی» را بزنید.`);
+});
+gt('tgTest').addEventListener('click', async () => {
+  tgSay('⏳ در حال ارسال…');
+  const r = await tgCall('POST', '/api/telegram/test');
+  tgSay(r.data.ok ? '✅ پیام فرستاده شد؛ تلگرام را نگاه کنید.' : `❌ نشد: ${r.data.error}`, !r.data.ok);
+});
+gt('tgClear').addEventListener('click', async () => {
+  if (!confirm('تنظیمات تلگرامِ ذخیره‌شده در برنامه پاک شود؟ (اگر در .env چیزی باشد همان استفاده می‌شود)')) return;
+  tgShow((await tgCall('DELETE', '/api/telegram')).data); tgSay('پاک شد.');
+});
+tgLoad();
+</script>
+<script>
+const gtf = (id) => document.getElementById(id);
+const TF_NAME = { '1': '۱ دقیقه', '5': '۵ دقیقه', '15': '۱۵ دقیقه', '30': '۳۰ دقیقه', '60': '۱ ساعت', '240': '۴ ساعت', 'D': 'روزانه', 'W': 'هفتگی', 'M': 'ماهانه' };
+let botTf = null;
+async function loadBotTf() {
+  try {
+    const r = await (await fetch('/api/timeframe')).json();
+    botTf = r.timeframe; gtf('tfSel').value = r.timeframe; gtf('tfBadge').textContent = TF_NAME[r.timeframe] || r.timeframe;
+    if (typeof refreshTfWarn === 'function') refreshTfWarn();
+  } catch {}
+}
+// asks, switches the bot to `tf` and returns true if it did (used by the Apply button of the backtest tab too)
+async function setBotTf(tf, askText) {
+  if (tf === botTf) return true;
+  const open = (await (await fetch('/api/timeframe')).json()).openPositions;
+  const msg = askText || `تایم‌فریم ربات از ${TF_NAME[botTf] || botTf} به ${TF_NAME[tf] || tf} عوض شود؟ از این به بعد ربات هر کندل ${TF_NAME[tf] || tf} را بررسی می‌کند.`;
+  if (!confirm(msg + (open ? `\n\n${open} پوزیشن باز دارید؛ با استاپ/هدف قبلی‌اش می‌ماند ولی سیگنال خروج از این به بعد روی تایم‌فریم جدید حساب می‌شود.` : ''))) return false;
+  const res = await fetch('/api/timeframe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tf }) });
+  if (!res.ok) { alert('عوض نشد.'); return false; }
+  await loadBotTf(); return true;
+}
+gtf('tfApply').addEventListener('click', () => setBotTf(gtf('tfSel').value));
+loadBotTf();
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (n) => n == null ? '—' : n >= 1000 ? n.toLocaleString('en', { maximumFractionDigits: 2 }) : n >= 1 ? n.toFixed(n >= 100 ? 2 : 4) : n.toPrecision(4);
+const pct = (n, d = 2) => n == null ? '—' : (n >= 0 ? '+' : '') + n.toFixed(d) + '%';
+// JSON turns Infinity/NaN into null, so anything coming from the server can be null here — never call .toFixed on it directly
+const fx = (n, d = 2) => (n == null || !isFinite(n)) ? '—' : n.toFixed(d);
+const pfx = (n) => (n == null || n === Infinity) ? '∞' : fx(n, 2); // Profit Factor: no losing trades -> Infinity on the server -> null over JSON
+const label = { buy: 'خرید', sell: 'فروش', skip: 'رد شد' };
+const quotes = new Map();
+let events = [], scheduled = false;
+
+// ---------- tabs ----------
+document.querySelectorAll('.navbtn').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.navbtn').forEach((x) => x.classList.toggle('active', x === b));
+  document.querySelectorAll('main').forEach((m) => m.classList.toggle('view-on', m.id === b.dataset.view));
+  if (b.dataset.view === 'anaView') loadAna();
+}));
+
+function loadChart(symbol) {
+  $('chart').innerHTML = '';
+  new TradingView.widget({
+    container_id: 'chart', symbol, interval: '15', theme: 'dark', style: '1', locale: TVLANG,
+    autosize: true, allow_symbol_change: true, hide_side_toolbar: false, save_image: true,
+  });
+}
+
+function renderList() {
+  scheduled = false;
+  $('list').innerHTML = [...quotes.values()].map((x) => {
+    const [ex, tk] = x.symbol.split(':');
+    const chip = label[x.signal] ? `<span class="chip ${x.signal}">${label[x.signal]}</span>` : '';
+    return `<button class="row" data-sym="${esc(x.symbol)}">
+      <span class="nm">${esc(tk)}${chip}<small>${esc(ex)}</small></span>
+      <span class="px ${x.change >= 0 ? 'up' : 'down'}">${fmt(x.price)}</span>
+      <span class="rsi"><i class="g"><b style="left:${x.rsi ?? 50}%"></b></i>${x.rsi == null ? '—' : x.rsi.toFixed(0)}</span>
+    </button>`;
+  }).join('') || '<div class="empty">در انتظار داده‌ی زنده…</div>';
+}
+const scheduleList = () => { if (!scheduled) { scheduled = true; requestAnimationFrame(renderList); } };
+
+// The note carries the actual useful content (suggested entry/SL/TP, which strategy, PnL on a close) — give it
+// its own readable line instead of squeezing it into the muted timestamp line where it used to go unnoticed.
+function renderEvents() {
+  $('events').innerHTML = events.map((e) => `<div class="ev">
+    <span class="${e.side === 'buy' ? 'up' : e.side === 'sell' ? 'down' : 'muted'}">${label[e.side] || 'ℹ️'}</span> ${esc(e.symbol)} @ ${fmt(e.price)}
+    ${e.note ? `<div style="margin-top:2px;white-space:pre-wrap;line-height:1.6">${esc(e.note)}</div>` : ''}
+    <small>${new Date(e.time).toLocaleTimeString('en-GB')} · ${esc(e.mode)}</small>
+  </div>`).join('') || '<div class="empty">هنوز سیگنالی صادر نشده.</div>';
+}
+
+function renderPortfolio(p, mode) {
+  const el = $('pf'), btn = $('halt');
+  if (mode === 'signal') { el.style.display = 'none'; btn.style.display = 'none'; $('panic').style.display = 'none'; return; }
+  el.style.display = 'block'; btn.style.display = 'inline-block'; $('panic').style.display = 'inline-block';
+  btn.textContent = p.halted ? 'ادامه‌ی ربات' : 'توقف ورود جدید';
+  const pos = p.positions.map((x) => `<div class="pos"><span>${esc(x.symbol.split(':')[1])}</span>
+    <span class="${x.pnlPct >= 0 ? 'up' : 'down'}">${x.pnlPct.toFixed(2)}%</span>
+    <small>SL ${fmt(x.sl)} · TP ${x.tp == null ? '—' : fmt(x.tp)}${x.tp1 ? ` · خروج پلکانی در ${fmt(x.tp1)}` : (x.partialDone ? ' · نیمه بسته شد ✓' : '')}</small></div>`).join('');
+  el.innerHTML = `<div>Equity ${fmt(p.equity)} · Day ${p.dayPnlPct.toFixed(2)}% · Drawdown ${p.drawdownPct.toFixed(2)}%</div>
+    <div>Realized ${p.realized.toFixed(2)} · Win/Loss ${p.wins}/${p.losses} · Open ${p.positions.length}</div>
+    ${p.halted ? `<div class="down">ورود جدید متوقف است: ${esc(p.haltReason)}</div>` : ''}${pos}`;
+}
+$('halt').addEventListener('click', () => fetch('/api/halt', { method: 'POST' }));
+$('panic').addEventListener('click', () => { if (confirm('همه‌ی پوزیشن‌های باز بسته و ورود جدید متوقف شود؟')) fetch('/api/panic', { method: 'POST' }); });
+
+$('list').addEventListener('click', (e) => {
+  const b = e.target.closest('.row'); if (b) loadChart(b.dataset.sym);
+});
+
+let mode = 'signal';
+function connect() {
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  ws.onopen = () => $('dot').classList.add('on');
+  ws.onclose = () => { $('dot').classList.remove('on'); setTimeout(connect, 2000); };
+  ws.onmessage = (m) => {
+    const msg = JSON.parse(m.data);
+    if (msg.type === 'snapshot') {
+      mode = msg.mode;
+      $('mode').textContent = { signal: 'فقط سیگنال', paper: 'آزمایشی', live: 'معامله‌ی واقعی' }[mode];
+      $('mode').classList.toggle('live', mode === 'live');
+      msg.quotes.forEach((q) => quotes.set(q.symbol, q));
+      events = msg.events; renderEvents(); renderPortfolio(msg.portfolio, mode); scheduleList();
+    } else if (msg.type === 'quote') { quotes.set(msg.data.symbol, msg.data); scheduleList(); }
+    else if (msg.type === 'event') { events.unshift(msg.data); events.length = Math.min(events.length, 50); renderEvents(); anaSoon(); }
+    else if (msg.type === 'btprogress') btProgress(msg.data);
+    else if (msg.type === 'portfolio') renderPortfolio(msg.data, mode);
+  };
+}
+
+loadChart('BINANCE:BTCUSDT');
+connect();
+
+// Symbols are picked by tapping chips (the list comes from /api/meta: the bot's watch list + a catalog of common
+// markets); typing a custom symbol is optional.
+let metaSymbols = [];
+let symCatalog = { crypto: [], stock: [], forex: [], other: [] };
+const symCustom = [];            // symbols the user added by hand this session (kept across meta reloads)
+const btSelected = new Set();
+const SYM_RE = /^[A-Z0-9_]+:[A-Z0-9._!-]+$/;
+const SYM_LABEL = { crypto: 'کریپتو', stock: 'سهام آمریکا', forex: 'فارکس و فلزات', other: 'سایر' };
+const symGroup = (x) => /^OANDA:[A-Z]{6}$/.test(x) ? 'forex' : /^(NASDAQ|NYSE|AMEX|ARCA|BATS):[A-Z.]+$/.test(x) ? 'stock' : /^[A-Z]+:[A-Z0-9]+?(USDT|USDC|USD)$/.test(x) ? 'crypto' : 'other';
+function addToCatalog(x) {
+  if (Object.values(symCatalog).some((l) => l.includes(x))) return;
+  symCatalog[symGroup(x)].push(x);
+}
+function renderSymbolPickers() {
+  const watched = new Set(metaSymbols);
+  const groups = Object.entries(symCatalog).filter(([, l]) => l.length);
+  $('btSymPicker').innerHTML = groups.map(([g, list]) =>
+    `<div class="symgrp"><b>${SYM_LABEL[g]}</b><button type="button" class="symlink" data-grp="${g}" data-act="all">انتخاب همه</button><button type="button" class="symlink" data-grp="${g}" data-act="none">هیچ</button></div>` +
+    `<div class="symchips">${list.map((x) => `<button type="button" class="symchip${btSelected.has(x) ? ' on' : ''}${watched.has(x) ? ' watch' : ''}" data-sym="${esc(x)}" title="${esc(x)}">${esc(x.split(':')[1])}</button>`).join('')}</div>`).join('');
+  $('btSymCount').textContent = btSelected.size ? `(${btSelected.size} انتخاب شده)` : '(هیچ‌کدام انتخاب نشده ← همه‌ی نمادهای دیده‌بان اجرا می‌شود)';
+  const keep = $('mxSymbol').value, all = groups.flatMap(([, l]) => l);
+  $('mxSymbol').innerHTML = groups.map(([g, list]) => `<optgroup label="${SYM_LABEL[g]}">${list.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</optgroup>`).join('');
+  $('mxSymbol').value = all.includes(keep) ? keep : (metaSymbols[0] || all[0] || '');
+}
+$('btSymPicker').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-sym]');
+  if (chip) { const x = chip.dataset.sym; btSelected.has(x) ? btSelected.delete(x) : btSelected.add(x); return renderSymbolPickers(); }
+  const b = e.target.closest('[data-grp]');
+  if (b) { (symCatalog[b.dataset.grp] || []).forEach((x) => (b.dataset.act === 'all' ? btSelected.add(x) : btSelected.delete(x))); renderSymbolPickers(); }
+});
+$('btPresets').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-pre]'); if (!b) return;
+  btSelected.clear();
+  const pre = b.dataset.pre;
+  if (pre !== 'none') metaSymbols.filter((x) => pre === 'all' || symGroup(x) === pre).forEach((x) => btSelected.add(x));
+  renderSymbolPickers();
+});
+function addCustomSymbol() {
+  const x = $('btSymCustom').value.trim().toUpperCase();
+  if (!x) return;
+  if (!SYM_RE.test(x)) { $('btSymCount').textContent = '(نماد نامعتبر است — قالب درست: EXCHANGE:TICKER مثل BINANCE:ARBUSDT)'; return; }
+  if (!symCustom.includes(x)) symCustom.push(x);
+  addToCatalog(x); btSelected.add(x); $('btSymCustom').value = '';
+  renderSymbolPickers();
+}
+$('btSymAdd').addEventListener('click', addCustomSymbol);
+$('btSymCustom').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomSymbol(); } });
+let metaStrategies = [];
+function showStrategyDesc() {
+  const s = metaStrategies.find((x) => x.id === $('btStrategy').value);
+  $('btStrategyDesc').textContent = s ? s.description : '';
+}
+$('btStrategy').addEventListener('change', showStrategyDesc);
+
+// ---------- multi-timeframe x multi-strategy comparison (one symbol, several "windows" at once) ----------
+const MX_TF_LIST = [['1', '۱ دقیقه'], ['5', '۵ دقیقه'], ['15', '۱۵ دقیقه'], ['30', '۳۰ دقیقه'], ['60', '۱ ساعت'], ['240', '۴ ساعت'], ['D', 'روزانه'], ['W', 'هفتگی'], ['M', 'ماهانه']];
+const MX_TF_DEFAULT = ['15', '30', '60', 'D'];
+const tfLabel = (tf) => (MX_TF_LIST.find((x) => x[0] === tf) || [tf, tf])[1];
+$('mxTfs').innerHTML = MX_TF_LIST.map(([v, l]) => `<label style="display:flex;gap:4px;align-items:center;font-size:13px"><input type="checkbox" value="${v}" style="width:auto"${MX_TF_DEFAULT.includes(v) ? ' checked' : ''}> ${l}</label>`).join('');
+
+let metaLoaded = false; // pre-fill symbols/timeframe from config.js only on the very first load — loadMeta()
+// also re-runs after applying/resetting a setting, and must never again overwrite what you've typed (e.g. just
+// one symbol) in the meantime.
+async function loadMeta() {
+  try {
+    const meta = await (await fetch('/api/meta')).json();
+    if (meta.symbols && meta.symbols.length) {
+      metaSymbols = meta.symbols;
+      symCatalog = meta.catalog || { crypto: [], stock: [], forex: [], other: [...meta.symbols] };
+      symCustom.forEach(addToCatalog);
+      if (!metaLoaded) { // first load only: start with the bot's own watch list selected; later reloads never undo your choice
+        btSelected.clear(); meta.symbols.forEach((x) => btSelected.add(x));
+        // the first chart loaded is BTC; if the watch list does not include it, show the first watched symbol instead
+        if (!meta.symbols.includes('BINANCE:BTCUSDT')) loadChart(meta.symbols[0]);
+      }
+      renderSymbolPickers();
+    }
+    if (meta.timeframe && !metaLoaded && [...$('btTf').options].some((o) => o.value === String(meta.timeframe))) $('btTf').value = String(meta.timeframe);
+    if (meta.risk && meta.risk.partialExit && !metaLoaded) {
+      const pe = meta.risk.partialExit;
+      $('peEnabled').checked = !!pe.enabled; $('peFields').style.display = pe.enabled ? 'flex' : 'none';
+      $('peAtR').value = pe.atR; $('peClosePct').value = pe.closePct; $('peBreakeven').checked = !!pe.moveStopToBreakeven;
+    }
+    if (meta.strategies && meta.strategies.length) {
+      metaStrategies = meta.strategies;
+      const keep = $('btStrategy').value;
+      const sname = (x) => x.name + (x.custom ? ' (دلخواه)' : '');
+      $('btStrategy').innerHTML = meta.strategies.map((s) => `<option value="${esc(s.id)}">${esc(sname(s))}</option>`).join('');
+      $('btStrategy').value = metaStrategies.some((s) => s.id === keep) ? keep : (meta.strategy ? meta.strategy.id : metaStrategies[0].id);
+      showStrategyDesc();
+      // rebuilt every time (a new combination must appear), keeping what is already ticked; custom ones start unticked
+      const wasTicked = new Map([...$('mxStrats').querySelectorAll('input')].map((x) => [x.value, x.checked]));
+      $('mxStrats').innerHTML = meta.strategies.map((s) => `<label style="display:flex;gap:4px;align-items:center;font-size:13px"><input type="checkbox" value="${esc(s.id)}" style="width:auto" ${(wasTicked.has(s.id) ? wasTicked.get(s.id) : !s.custom) ? 'checked' : ''}> ${esc(sname(s))}</label>`).join('');
+      renderCustomComps();
+    }
+    const bar = $('btOverrideBar');
+    if (meta.overridesApplied) {
+      bar.style.display = 'block';
+      const c = meta.confluence, cTxt = c.enabled ? `تأیید(${c.minConfirm} از ${[c.useMacd && 'MACD', c.useVolume && 'حجم'].filter(Boolean).length})` : 'بدون فیلتر تأیید';
+      const stratName = (metaStrategies.find((s) => s.id === meta.strategy.id) || {}).name || meta.strategy.id;
+      const pe = meta.risk.partialExit, peTxt = pe && pe.enabled ? ` · خروج پلکانی (${pe.closePct}% در ${pe.atR}R)` : '';
+      bar.innerHTML = `تنظیمات سفارشی (از بک‌تست) الان روی ربات فعال است: استراتژی «${esc(stratName)}» · ATR x${meta.risk.atrMult} RR ${meta.risk.takeProfitRR} تریلینگ ${meta.risk.trailing ? 'روشن' : 'خاموش'} RSI<${meta.rsi.buy} · ${cTxt}${peTxt}
+        <button id="btOverrideReset" class="runbtn secondary" style="padding:1px 8px;font-size:11px;margin-inline-start:6px">بازگشت به پیش‌فرض</button>`;
+      $('btOverrideReset').addEventListener('click', async () => {
+        if (!confirm('تنظیمات سفارشی حذف و به مقادیر پیش‌فرض config.js برگردد؟')) return;
+        await fetch('/api/backtest/sweep/apply', { method: 'DELETE' });
+        loadMeta();
+      });
+    } else bar.style.display = 'none';
+    metaLoaded = true;
+  } catch {}
+  loadCustom(); loadAiSettings();
+}
+loadMeta();
+
+// ---------- custom strategies: combinations + your own JavaScript file ----------
+function renderCustomComps() {
+  const box = $('cbComps'); if (!box) return;
+  const keep = new Set([...box.querySelectorAll('input:checked')].map((x) => x.value));
+  box.innerHTML = metaStrategies.filter((s) => s.kind !== 'combo').map((s) => `<label class="cbchip"><input type="checkbox" value="${esc(s.id)}" ${keep.has(s.id) ? 'checked' : ''}> ${esc(s.name)}</label>`).join('');
+}
+function renderCustomStatus(d) {
+  renderAiList(d.rules || []);
+  const nameOf = (id) => (metaStrategies.find((x) => x.id === id) || {}).name || id;
+  $('cbList').innerHTML = d.combos.length ? d.combos.map((c) => c.valid
+    ? `<div class="cbitem"><div><b>${esc(c.name)}</b><small>${esc(c.components.map(nameOf).join(' + '))} · خرید با ${c.entryVotes} رأی، خروج با ${c.exitVotes} رأی${c.rsiBuy != null ? ` · RSI خرید ${c.rsiBuy}` : ''}${c.rsiSell != null ? ` · RSI فروش ${c.rsiSell}` : ''}</small></div><button class="runbtn secondary" style="padding:8px 14px" data-del="${esc(c.id)}">حذف</button></div>`
+    : `<div class="cbitem"><div><b>${esc(c.name || c.id || '؟')}</b><small class="down">غیرفعال: ${esc(c.reason || '')}</small></div>${c.id ? `<button class="runbtn secondary" style="padding:8px 14px" data-del="${esc(c.id)}">حذف</button>` : ''}</div>`).join('')
+    : '<div class="muted" style="margin-top:8px">هنوز ترکیبی نساخته‌ای.</div>';
+  const sc = d.script; let h = '';
+  if (d.combosError) h += `<div class="warn">${esc(d.combosError)}</div>`;
+  if (d.activeMissing) h += `<div class="warn">استراتژی فعال ربات (${esc(d.activeStrategy)}) پیدا نشد؛ تا استراتژی دیگری را اعمال نکنی ربات معامله نمی‌کند.</div>`;
+  if (sc.error) h += `<div class="warn">خطا در فایل شخصی (هیچ‌کدام بارگذاری نشد): ${esc(sc.error)}</div>`;
+  else if (!sc.exists) h += `<div class="muted">فایلی پیدا نشد. برای شروع، <code>custom-strategies.example.js</code> را به <code>custom-strategies.user.js</code> کپی کن${sc.file ? ` (مسیر: <span dir="ltr">${esc(sc.file)}</span>)` : ''} و همان‌جا ویرایشش کن.</div>`;
+  else if (!sc.loaded.length) h += '<div class="muted">فایل پیدا شد ولی استراتژی فعالی در آن نیست (مثلاً همه <code>enabled: false</code> هستند).</div>';
+  else h += `<div>بارگذاری‌شده: ${sc.loaded.map((x) => `<b>${esc(x.name)}</b>`).join('، ')}</div>`;
+  if (sc.skipped && sc.skipped.length) h += `<div class="muted">ردشده: ${sc.skipped.map((x) => `${esc(x.id)} (${esc(x.reason)})`).join('؛ ')}</div>`;
+  for (const [id, e] of Object.entries(d.runtimeErrors || {})) h += `<div class="warn">«${esc(nameOf(id))}» روی ${e.count} کندل خطا داد: ${esc(e.message)}</div>`;
+  $('jsStatus').innerHTML = h;
+}
+async function loadCustom() {
+  try { renderCustomStatus(await (await fetch('/api/custom')).json()); } catch {}
+}
+function cbSay(text, bad) { const m = $('cbMsg'); m.textContent = text; m.className = bad ? 'down' : 'up'; }
+$('cbAdd').addEventListener('click', async () => {
+  const body = {
+    name: $('cbName').value, components: [...$('cbComps').querySelectorAll('input:checked')].map((x) => x.value),
+    entryVotes: Number($('cbEntry').value), exitVotes: Number($('cbExit').value), rsiBuy: $('cbRsiBuy').value, rsiSell: $('cbRsiSell').value,
+  };
+  $('cbAdd').disabled = true;
+  try {
+    const r = await fetch('/api/custom/combos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) cbSay(d.error || 'خطا', true);
+    else { cbSay('ترکیب ساخته شد و در لیست استراتژی‌ها اضافه شد.'); $('cbName').value = ''; await loadMeta(); }
+  } catch { cbSay('ارتباط با سرور برقرار نشد', true); }
+  $('cbAdd').disabled = false;
+});
+$('cbList').addEventListener('click', async (ev) => {
+  const id = ev.target && ev.target.dataset && ev.target.dataset.del; if (!id) return;
+  if (!confirm('این ترکیب حذف شود؟')) return;
+  const r = await fetch('/api/custom/combos/' + encodeURIComponent(id), { method: 'DELETE' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) cbSay(d.error || 'خطا', true); else { cbSay('حذف شد.'); await loadMeta(); }
+});
+$('jsReload').addEventListener('click', async () => {
+  $('jsReload').disabled = true;
+  try { await fetch('/api/custom/reload', { method: 'POST' }); await loadMeta(); } catch {}
+  $('jsReload').disabled = false;
+});
+
+// ---------- AI: plain words -> rule strategy ----------
+let aiPending = null;
+const aiJson = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then(async (r) => ({ ok: r.ok, status: r.status, d: await r.json().catch(() => ({})) }));
+function aiSay(text, bad) { const m = $('aiMsg'); m.textContent = text; m.className = bad ? 'down' : 'up'; }
+function aiSetSay(text, bad) { const m = $('aiSetMsg'); m.textContent = text; m.className = bad ? 'down' : 'up'; }
+async function loadAiSettings() {
+  try {
+    const v = await (await fetch('/api/ai/settings')).json();
+    if (document.activeElement !== $('aiProxy')) $('aiProxy').value = v.proxy || '';
+    $('aiProvider').value = v.provider; $('aiModel').value = v.model || ''; $('aiBase').value = v.baseUrl || '';
+    $('aiModel').placeholder = (v.defaults[v.provider] && v.defaults[v.provider].model) || 'نام مدل را از سرویس خودت بنویس';
+    $('aiBase').placeholder = (v.defaults[v.provider] && v.defaults[v.provider].baseUrl) || 'https://...';
+    $('aiStatus').innerHTML = v.configured
+      ? `<span class="up">آماده</span> · ${esc(v.provider === 'anthropic' ? 'Claude' : 'سازگار با OpenAI')} · مدل <code>${esc(v.model)}</code>${v.hasKey ? ` · کلید ${esc(v.keyHint)} (${v.keySource === 'env' ? 'از .env' : 'ذخیره‌شده از داشبورد'})` : ' · بدون کلید (سرویس محلی)'}`
+      : `<span class="down">هنوز تنظیم نشده</span> · ${v.needs === 'key' ? 'کلید API را وارد کن' : 'نام مدل را وارد کن'}؛ یا از روش «بدون کلید API» بالا استفاده کن.`;
+    $('aiGen').disabled = !v.configured;
+    $('aiGen').title = v.configured ? '' : 'اول کلید API را در تنظیمات هوش مصنوعی وارد کن، یا از روش بدون کلید استفاده کن';
+  } catch {}
+}
+function renderAiProposal(p, text) {
+  aiPending = { rules: p.rules, text };
+  $('aiPreview').innerHTML = `<div class="aibox"><b>پیشنهاد AI (هنوز ذخیره نشده)</b>
+    <div class="field" style="margin:8px 0"><label for="aiName">نام استراتژی</label><input id="aiName" maxlength="60" value="${esc(p.name)}" style="font:inherit;font-size:15px;padding:10px;background:#0f1520;border:1px solid var(--line);color:var(--text);border-radius:6px"></div>
+    <pre>${esc(p.text.entry)}\n${esc(p.text.exit)}</pre>
+    ${p.notes ? `<div class="warn">توضیح AI: ${esc(p.notes)}</div>` : ''}
+    <div class="muted" style="line-height:1.8">این متن را خود برنامه از روی قاعده‌ها نوشته، نه AI. اگر با منظورت نمی‌خواند، ذخیره نکن و ایده را دقیق‌تر بنویس. حد ضرر و حد سود از تنظیمات ریسک ربات می‌آیند.</div>
+    <button id="aiSaveRules" class="runbtn" style="padding:9px 18px;margin-top:8px">ذخیره به‌عنوان استراتژی</button>
+    <button id="aiDismiss" class="runbtn secondary" style="padding:9px 18px;margin-top:8px">رد کردن</button></div>`;
+}
+$('aiPreview').addEventListener('click', async (ev) => {
+  if (ev.target.id === 'aiDismiss') { aiPending = null; $('aiPreview').innerHTML = ''; return; }
+  if (ev.target.id !== 'aiSaveRules' || !aiPending) return;
+  ev.target.disabled = true;
+  const { ok, d } = await aiJson('/api/custom/rules', { name: $('aiName').value, rules: aiPending.rules, source: aiPending.text });
+  if (!ok) { aiSay(d.error || 'خطا', true); ev.target.disabled = false; return; }
+  aiSay('ذخیره شد. حالا در فرم بک‌تست بالا انتخابش کن و اجرا بزن.');
+  aiPending = null; $('aiPreview').innerHTML = '';
+  await loadMeta(); try { $('btStrategy').value = d.id; } catch {}
+});
+$('aiGen').addEventListener('click', async () => {
+  const text = $('aiText').value; $('aiGen').disabled = true; aiSay('در حال گرفتن پیشنهاد از AI…'); $('aiPreview').innerHTML = '';
+  try {
+    const { ok, d } = await aiJson('/api/ai/strategy', { text });
+    if (!ok) { aiSay(d.error || 'خطا', true); if (d.needsSetup) $('aiSetBox').open = true; }
+    else { aiSay(d.proposal.attempts > 1 ? 'پیشنهاد آماده شد (بار دوم، بعد از اصلاح خودکار).' : 'پیشنهاد آماده شد؛ مرورش کن.'); renderAiProposal(d.proposal, text); }
+  } catch { aiSay('ارتباط با سرور برقرار نشد', true); }
+  await loadAiSettings();
+});
+$('aiPromptBtn').addEventListener('click', async () => {
+  const { ok, d } = await aiJson('/api/ai/prompt', { text: $('aiText').value });
+  if (!ok) { aiSay(d.error || 'خطا', true); return; }
+  $('aiPromptOut').value = d.prompt; $('aiPromptWrap').style.display = 'block'; aiSay('متن آماده شد؛ کپی کن و در چت‌بات بچسبان.');
+});
+$('aiCopy').addEventListener('click', async () => {
+  const t = $('aiPromptOut'); t.select();
+  try { await navigator.clipboard.writeText(t.value); } catch { document.execCommand && document.execCommand('copy'); }
+  $('aiCopy').textContent = 'کپی شد ✓'; setTimeout(() => { $('aiCopy').textContent = 'کپی'; }, 2000);
+});
+$('aiParse').addEventListener('click', async () => {
+  const { ok, d } = await aiJson('/api/ai/parse', { reply: $('aiReply').value });
+  if (!ok) { aiSay(d.error || 'خطا', true); return; }
+  aiSay('پاسخ معتبر است؛ مرورش کن.'); renderAiProposal(d.proposal, $('aiText').value);
+});
+async function aiSaveSettings(extra) {
+  const body = { provider: $('aiProvider').value, model: $('aiModel').value, baseUrl: $('aiBase').value, proxy: $('aiProxy').value, ...extra };
+  const k = $('aiKey').value.trim(); if (k && !extra) body.apiKey = k;
+  const { ok, d } = await aiJson('/api/ai/settings', body);
+  if (!ok) { aiSetSay(d.error || 'خطا', true); return false; }
+  $('aiKey').value = ''; aiSetSay('ذخیره شد.'); await loadAiSettings(); return true;
+}
+$('aiSave').addEventListener('click', () => aiSaveSettings());
+// one-tap presets: they only fill the fields (provider / address / model); you still type your own key and press Save
+const AI_PRESETS = {
+  ollamacloud: { provider: 'openai', baseUrl: 'https://ollama.com/v1', model: 'gpt-oss:20b' },
+  gemini: { provider: 'openai', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.5-flash' },
+  openai: { provider: 'openai', baseUrl: 'https://api.openai.com/v1', model: '' },
+  deepseek: { provider: 'openai', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  openrouter: { provider: 'openai', baseUrl: 'https://openrouter.ai/api/v1', model: '' },
+  claude: { provider: 'anthropic', baseUrl: '', model: '' },
+};
+$('aiPresets').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-p]'); const p = b && AI_PRESETS[b.dataset.p]; if (!p) return;
+  $('aiProvider').value = p.provider; $('aiBase').value = p.baseUrl; $('aiModel').value = p.model;
+  aiSetSay('فیلدها پر شد؛ کلید API را بنویس و «ذخیره» یا «آزمایش اتصال» را بزن.');
+});
+
+// ---- ML lab: one honest walk-forward experiment on a candle archive (report only) ----
+const mlMsg = (t, bad) => { $('mlMsg').textContent = t || ''; $('mlMsg').style.color = bad ? 'var(--bad, #d9534f)' : ''; };
+const fa = (n, d = 2) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(d));
+const mlDate = (t) => new Date(t * 1000).toISOString().slice(0, 10);
+const mlTfOf = (file) => file.slice(file.lastIndexOf('_') + 1);
+const mlTfMin = (tf) => (tf === 'D' ? 1440 : tf === 'W' ? 10080 : Number(tf) || 0);
+const mlTfName = (tf) => ({ 1: '۱ دقیقه', 5: '۵ دقیقه', 15: '۱۵ دقیقه', 30: '۳۰ دقیقه', 60: '۱ ساعت', 240: '۴ ساعت', D: 'روزانه', W: 'هفتگی' }[tf] || `${tf} دقیقه`);
+let mlList = [];
+const mlPoolSel = new Set(); // ticked archives of the multi-symbol test (always one timeframe)
+let mlPrevTotal = null, mlPrevAt = null;
+function mlSrcInfoUpdate(list) {
+  const total = list.reduce((a, x) => a + x.candles, 0), el = $('mlSrcInfo'); if (!el) return;
+  let note = '';
+  if (mlPrevTotal !== null && total !== mlPrevTotal) { mlPrevAt = new Date().toLocaleTimeString('en-GB').slice(0, 5); note = ` — به‌روز شد: ${total > mlPrevTotal ? '+' : ''}${(total - mlPrevTotal).toLocaleString('en')} کندل نسبت به بار قبل (ساعت ${mlPrevAt})`; }
+  else if (mlPrevAt) note = ` — آخرین تغییر: ساعت ${mlPrevAt}`;
+  mlPrevTotal = total;
+  el.textContent = `منبع کندل‌ها: ${list.length} آرشیو، مجموعاً ${total.toLocaleString('en')} کندل${note}`;
+}
+function mlPoolCount() {
+  const n = mlPoolSel.size, tfs = [...new Set([...mlPoolSel].map(mlTfOf))];
+  $('mlPoolCount').textContent = n ? `${n} آرشیو انتخاب شده (تایم‌فریم ${mlTfName(tfs[0])})` : 'هنوز چیزی انتخاب نشده';
+}
+function mlDrawLists(manual) {
+  const list = mlList, tf = $('mlTf').value, shown = list.filter((a) => !tf || mlTfOf(a.file) === tf);
+  const sel = $('mlFile'), old = sel.value;
+  const opt = (a) => `<option value="${esc(a.file)}">${esc(a.file)} — ${a.candles} کندل (${a.from ? mlDate(a.from) : '?'} تا ${a.to ? mlDate(a.to) : '?'})</option>`;
+  const grp = (label, src, arr) => { const g = arr.filter((a) => a.source === src); return g.length ? `<optgroup label="${label}">${g.map(opt).join('')}</optgroup>` : ''; };
+  sel.innerHTML = grp('TradingView (آرشیو ربات و دانلودها)', 'tv', shown) + grp('MetaTrader (ایمپورت MT5)', 'mt5', shown) || '<option value="">آرشیوی با این تایم‌فریم نیست</option>';
+  if (old && [...sel.options].some((o) => o.value === old)) sel.value = old;
+  const rs = $('mlRef'), oldRef = rs.value; // the related symbol may have any timeframe: its latest closed candle is used
+  rs.innerHTML = '<option value="">بدون نماد وابسته</option>' + grp('TradingView', 'tv', list) + grp('MetaTrader', 'mt5', list);
+  if (oldRef && [...rs.options].some((o) => o.value === oldRef)) rs.value = oldRef;
+  // multi-symbol list: only what exists, grouped by timeframe (headings when all timeframes are shown), then by source
+  for (const f of [...mlPoolSel]) if (!list.some((a) => a.file === f)) mlPoolSel.delete(f);
+  const box = (a) => `<label style="display:flex;gap:4px;align-items:center;direction:ltr"><input type="checkbox" value="${esc(a.file)}"${mlPoolSel.has(a.file) ? ' checked' : ''}> ${esc(a.file)} <span class="muted">(${a.candles})</span></label>`;
+  const byTf = [...new Set(shown.map((a) => mlTfOf(a.file)))].sort((x, y) => mlTfMin(x) - mlTfMin(y));
+  const sub = (arr, label) => (arr.length ? `<div style="width:100%;font-size:12px;color:var(--muted)">${label}</div>${arr.map(box).join('')}` : '');
+  $('mlPoolList').innerHTML = byTf.map((t) => {
+    const g = shown.filter((a) => mlTfOf(a.file) === t).sort((x, y) => x.file.localeCompare(y.file)), mt = g.filter((a) => a.source === 'mt5'), other = g.filter((a) => a.source !== 'mt5');
+    const head = tf ? '' : `<div style="width:100%;font-weight:600;margin-top:6px">${mlTfName(t)} <span class="muted" style="font-weight:400">(${g.length} آرشیو)</span></div>`;
+    return head + (mt.length && other.length ? sub(other, 'TradingView / بایننس') + sub(mt, 'MetaTrader') : g.map(box).join(''));
+  }).join('') || '<span class="muted">آرشیوی با این تایم‌فریم نیست</span>';
+  mlPoolCount(); mlSrcInfoUpdate(list);
+  if (manual) { const tv = list.filter((a) => a.source === 'tv').length, mt = list.length - tv; mlMsg(`فهرست تازه شد: ${tv} آرشیو TradingView و ${mt} آرشیو MetaTrader`); }
+}
+async function mlLoadArchives(manual) {
+  try {
+    const res = await fetch('/api/ml/archives', { cache: 'no-store' }); if (!res.ok) throw new Error(res.status);
+    const j = await res.json(); mlList = j.archives || [];
+    const counts = {}; mlList.forEach((a) => { const t = mlTfOf(a.file); counts[t] = (counts[t] || 0) + 1; });
+    const tfs = Object.keys(counts).sort((x, y) => mlTfMin(x) - mlTfMin(y)), tfSel = $('mlTf'), oldTf = tfSel.value;
+    tfSel.innerHTML = '<option value="">همه</option>' + tfs.map((t) => `<option value="${esc(t)}">${mlTfName(t)} (${counts[t]})</option>`).join('');
+    // first time: start on the timeframe that has the most archives, so the lists are short from the start
+    tfSel.value = oldTf && tfs.includes(oldTf) ? oldTf : (oldTf === '' && tfSel.dataset.set ? '' : tfs.slice().sort((x, y) => counts[y] - counts[x])[0] || '');
+    tfSel.dataset.set = '1';
+    mlDrawLists(manual);
+  } catch { mlMsg('خواندن فهرست آرشیو ممکن نشد', true); }
+}
+function mlRender(r) {
+  const v = r.verdict, color = { promising: '#2e9d57', weak: '#d9a441', none: '#d9534f' }[v.level] || '#888';
+  const t = r.trades, be = r.baseline;
+  const row = (a, b) => `<tr><td style="padding:3px 8px;color:var(--muted)">${a}</td><td style="padding:3px 8px;direction:ltr;text-align:right">${b}</td></tr>`;
+  $('mlOut').innerHTML = `
+    <div style="border-inline-start:4px solid ${color};padding:8px 12px;margin-bottom:10px;line-height:1.9"><b>${v.level === 'promising' ? 'امیدوارکننده' : v.level === 'weak' ? 'شواهد ناکافی' : 'لبه‌ای پیدا نشد'}</b><br>${esc(v.text)}</div>
+    <table style="border-collapse:collapse;font-size:13px">
+      ${row('منبع کندل‌ها', r.source === 'meta' ? `متالیبلینگ: ${esc(r.strategyName)} — سیگنال ${r.meta.dir === 'short' ? 'فروش' : 'خرید'} — ${r.symbols.length} آرشیو${r.symbols.length > 1 ? (r.mode === 'walk' ? ' (همه در آموزش، آزمون جلوتر در زمان)' : ' (نماد آزمون در آموزش نیست)') : ' (فقط آزمون زمانی)'}` : r.source === 'pooled' ? `چند نماد با هم (${r.symbols.length} آرشیو) — ${r.mode === 'walk' ? 'همه در آموزش، آزمون جلوتر در زمان' : 'نماد آزمون در آموزش نیست'}` : r.source === 'mt5' ? 'MetaTrader (ایمپورت MT5)' : 'TradingView')}
+      ${row('داده‌ی آزمون (هرگز دیده‌نشده)', `${mlDate(r.from)} تا ${mlDate(r.to)} — ${r.oosSamples} ${r.meta ? 'سیگنال' : 'کندل'} در ${r.folds.length} بازه`)}
+      ${r.meta ? row('اگر همه‌ی سیگنال‌های استراتژی گرفته شوند', `${r.meta.takeAll.trades} معامله، میانگین ${fa(r.meta.takeAll.meanR)} R`) : ''}
+      ${r.meta ? row('با فیلتر مدل (فقط سیگنال‌های انتخاب‌شده)', `${r.meta.selected.trades} معامله، میانگین ${fa(r.meta.selected.meanR)} R`) : ''}
+      ${r.meta ? row('تفاوت فیلتر نسبت به گرفتن همه', `<b style="color:${r.meta.gainR > 0 ? '#2e9d57' : '#d9534f'}">${r.meta.gainR > 0 ? '+' : ''}${fa(r.meta.gainR)} R در هر معامله</b>`) : ''}
+      ${row('تعداد معاملات مدل', t.trades)}
+      ${row('میانگین هر معامله بعد از هزینه', `${fa(t.meanR)} R`)}
+      ${row('جمع نتیجه / بیشترین افت', `${fa(t.totalR, 1)} R / ${fa(t.maxDrawdownR, 1)} R`)}
+      ${row('درصد معاملات سودده (سربه‌سر: ' + fa(r.breakEvenWinRate * 100, 0) + '٪)', `${fa(t.winRate * 100, 1)}٪`)}
+      ${row('احتمال اینکه این نتیجه فقط اقبال باشد', r.pValue === null ? '—' : `${fa(r.pValue * 100, 1)}٪`)}
+      ${r.meta ? '' : row('معاملات خرید مدل / فروش مدل', `${r.byDirection.long.trades} معامله، ${fa(r.byDirection.long.meanR)} R / ${r.byDirection.short.trades} معامله، ${fa(r.byDirection.short.meanR)} R`)}
+      ${r.meta ? row('گرفتن همه‌ی سیگنال‌ها (بدون فیلتر)', `${fa(be.long.meanR)} R`) : row('ورود تصادفی (خرید / فروش)', `${fa(be.long.meanR)} R / ${fa(be.short.meanR)} R`)}
+      ${row('فقط نگه داشتن در همین بازه (خرید اول، فروش آخر)', `${fa(r.hold.pct, 1)}٪ (${mlDate(r.hold.from)} تا ${mlDate(r.hold.to)})`)}
+      ${row(r.meta ? 'قدرت مدل در جدا کردن سیگنال خوب از بد (AUC؛ ۰٫۵ = حدس)' : 'قدرت تشخیص مدل (AUC؛ ۰٫۵ = حدس)', r.meta ? fa(r.auc.long, 3) : `خرید ${fa(r.auc.long, 3)} · فروش ${fa(r.auc.short, 3)}`)}
+      ${row('بازه‌های سودده', `${r.foldsProfitable} از ${r.foldsWithTrades}`)}
+      ${r.stats ? row('آزمون جایگشت AUC (احتمال اینکه شانس باشد)', r.stats.aucPerm ? `${fa(r.stats.aucPerm.p * 100, 1)}٪ (میانگین حالت تصادفی ${fa(r.stats.aucPerm.nullMean, 3)})` : '—') : ''}
+      ${r.stats ? row(r.meta ? 'بازه‌ی اطمینان ۹۵٪ AUC' : 'بازه‌ی اطمینان ۹۵٪ AUC (خرید / فروش)', (r.meta ? ['long'] : ['long', 'short']).map((d) => (r.stats.aucCI[d] ? `${fa(r.stats.aucCI[d][0], 3)} تا ${fa(r.stats.aucCI[d][1], 3)}` : '—')).join(' / ')) : ''}
+      ${r.stats ? row(r.meta ? 'آزمون جایگشت نتیجه‌ی معاملات (انتخاب تصادفی هم‌اندازه)' : 'آزمون جایگشت نتیجه‌ی معاملات (زمان‌بندی تصادفی)', r.stats.tradePerm ? `${fa(r.stats.tradePerm.p * 100, 1)}٪ (میانگین حالت تصادفی ${fa(r.stats.tradePerm.nullMean)} R)` : '—') : ''}
+      ${r.stats ? row('نمونه‌ی مؤثر (برچسب‌ها همپوشانی دارند)', r.meta ? `حدود ${r.stats.effectiveN} سیگنال مستقل (بدون همپوشانی)، از ${r.oosSamples}${r.symbols.length > 1 ? ' (نمادها همبسته‌اند؛ واقعی کمتر است)' : ''}` : r.pooled ? `حدود ${r.stats.effectiveN} نمونه‌ی مستقل، نه ${r.oosSamples} (نمادها همبسته‌اند؛ واقعی کمتر است)` : `حدود ${r.stats.effectiveN} نمونه‌ی مستقل، نه ${r.oosSamples}`) : ''}
+      ${r.sourceCandles ? row('کندل‌های منبع آموزش و آزمون', `${r.sourceCandles.used.toLocaleString('en')} کندل استفاده شد (آرشیوها روی هم ${r.sourceCandles.archived.toLocaleString('en')} کندل دارند${r.sourceCandles.used < r.sourceCandles.archived ? '؛ از هر آرشیو فقط جدیدترین ۶۰ هزار کندل خوانده می‌شود' : ''})`) : (r.candles ? row('کندل‌های منبع آموزش و آزمون', `${r.candles.toLocaleString('en')} کندل`) : '')}
+      ${r.cost ? row('هزینه‌ی معامله', r.cost.mode === 'real' ? `هزینه‌ی واقعی هر بازار از تنظیمات ربات × ${fa(r.cost.mult, 1)} — میانگین ${fa(r.cost.avgAtr, 2)} ATR رفت‌وبرگشت (جدول هر نماد پایین)` : `ثابت ${fa(r.params.costAtr, 2)} ATR برای همه‌ی نمادها`) : ''}
+      ${row('ویژگی‌های استفاده‌شده', `${r.features.count} ویژگی${r.features.groups.length ? ' (' + r.features.groups.map((g) => ({ time: 'زمان', htf: 'تایم‌فریم بالاتر', structure: 'ساختار بازار' }[g])).join('، ') + ')' : ' (پایه)'}${r.refFile ? ' + نماد وابسته ' + esc(r.refFile) : ''}`)}
+    </table>
+    ${r.costSweep ? `<div style="margin-top:10px;font-size:13px"><b>حساسیت به هزینه</b> (همان آزمون با هزینه‌های مختلف؛ هر خط یک آموزش جدا)<table style="border-collapse:collapse;margin-top:4px"><tr class="muted"><td style="padding:3px 10px">هزینه (× ATR)</td><td style="padding:3px 10px">معامله</td><td style="padding:3px 10px">میانگین هر معامله</td><td style="padding:3px 10px">درصد برد</td><td style="padding:3px 10px">AUC بهتر از دو جهت</td></tr>${r.costSweep.map((c) => `<tr><td style="padding:3px 10px;direction:ltr">${c.costMult != null ? `×${fa(c.costMult, 1)} (${fa(c.costAtr, 2)} ATR)` : fa(c.costAtr, 2)}${(c.main !== undefined ? c.main : c.costAtr === r.params.costAtr) ? ' ◀' : ''}</td><td style="padding:3px 10px">${c.trades}</td><td style="padding:3px 10px;direction:ltr">${fa(c.meanR)} R</td><td style="padding:3px 10px">${fa(c.winRate * 100, 1)}٪</td><td style="padding:3px 10px">${fa(c.aucBest, 3)}</td></tr>`).join('')}</table><div class="muted" style="margin-top:4px;line-height:1.8">اگر حتی با هزینه‌ی صفر هم AUC نزدیک ۰٫۵ است، سیگنالی وجود ندارد. اگر فقط با هزینه‌ی صفر مثبت است، سیگنال کوچکی هست که هزینه آن را می‌خورد.</div></div>` : ''}
+    ${r.perSymbol ? `<div style="margin-top:10px;font-size:13px"><b>نتیجه‌ی هر نماد</b>${r.mode === 'walk' ? ' (همه‌ی نمادها در آموزش بودند؛ فقط آزمون جلوتر در زمان است)' : ' (مدل بدون خود این نماد آموزش دیده است)'}. اگر فقط یکی دو نماد خوب باشند و بقیه حدود ۰٫۵، چیز عمومی‌ای یاد گرفته نشده.<table style="border-collapse:collapse;margin-top:4px"><tr class="muted"><td style="padding:3px 10px">نماد</td><td style="padding:3px 10px">نمونه</td><td style="padding:3px 10px">کندل</td><td style="padding:3px 10px">هزینه (ATR)</td><td style="padding:3px 10px">${r.meta ? 'AUC' : 'AUC خرید / فروش'}</td><td style="padding:3px 10px">معامله</td><td style="padding:3px 10px">میانگین هر معامله</td></tr>${r.perSymbol.map((x) => `<tr><td style="padding:3px 10px;direction:ltr">${esc(x.name)}</td><td style="padding:3px 10px">${x.samples}</td><td style="padding:3px 10px">${x.candles}</td><td style="padding:3px 10px;direction:ltr">${fa(x.costAtr, 2)}</td><td style="padding:3px 10px;direction:ltr">${r.meta ? fa(x.aucLong, 3) : `${fa(x.aucLong, 3)} / ${fa(x.aucShort, 3)}`}</td><td style="padding:3px 10px">${x.trades}</td><td style="padding:3px 10px;direction:ltr">${fa(x.meanR)} R</td></tr>`).join('')}</table></div>` : ''}
+    <details style="margin-top:8px"><summary class="muted" style="cursor:pointer">نتیجه‌ی هر بازه و مهم‌ترین ویژگی‌ها</summary>
+      <div style="font-size:13px;line-height:1.9;margin-top:6px">${r.folds.map((f, i) => `بازه‌ی ${i + 1}: ${mlDate(f.from)} تا ${mlDate(f.to)} — ${f.trades} معامله، میانگین ${fa(f.meanR)} R`).join('<br>')}<br><br>ویژگی‌هایی که مدل بیشتر به آن‌ها تکیه کرد: ${r.importance.map((x) => esc(x.name) + ' (' + fa(x.share * 100, 0) + '٪)').join('، ')}</div></details>
+    <div class="muted" style="font-size:12px;margin-top:8px;line-height:1.8">R یعنی «فاصله‌ی حد ضرر». این اجرا به‌عنوان یک ایده‌ی آزمون‌شده در دفتر پژوهش ثبت شد (برای این نماد حالا حدود ${r.trial.trials} ایده در ${r.trial.windowDays} روز اخیر)، تا آمارهای بقیه‌ی برنامه برای تعداد تلاش‌ها تصحیح شود. ${fa(r.ms / 1000, 1)} ثانیه.</div>`;
+}
+async function mlGo(sweep) {
+  const file = $('mlFile').value; if (!file) return mlMsg('اول یک آرشیو انتخاب کن', true);
+  $('mlRun').disabled = $('mlRunSweep').disabled = true; mlMsg(sweep ? 'در حال اجرا با چند هزینه… (چند برابر زمان یک اجرا)' : 'در حال آموزش و آزمون… (چند ثانیه تا چند دقیقه)'); $('mlOut').innerHTML = '';
+  try {
+    const res = await fetch('/api/ml/run', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ file, model: $('mlModel').value, horizon: $('mlHorizon').value, slAtr: $('mlSl').value, rr: $('mlRr').value, costAtr: $('mlCost').value, folds: $('mlFolds').value, costSweep: !!sweep, refFile: $('mlRef').value || undefined, features: [$('mlFTime').checked && 'time', $('mlFHtf').checked && 'htf', $('mlFStruct').checked && 'structure'].filter(Boolean) }) });
+    const j = await res.json();
+    if (!res.ok) return mlMsg(j.error || 'آزمون انجام نشد', true);
+    mlMsg(''); mlRender(j);
+  } catch { mlMsg('ارتباط با سرور برقرار نشد', true); } finally { $('mlRun').disabled = $('mlRunSweep').disabled = false; }
+}
+async function mlGoPooled(sweep) {
+  const files = [...mlPoolSel];
+  if (files.length < 2) return mlMsg('دست‌کم دو آرشیو هم‌تایم‌فریم انتخاب کن', true);
+  const btns = [$('mlRun'), $('mlRunSweep'), $('mlPoolRun'), $('mlPoolSweep'), $('mlMetaRun'), $('mlMetaSweep')]; btns.forEach((b) => { b.disabled = true; });
+  mlMsg(`آموزش و آزمون ${files.length} نماد با هم… (چند دقیقه؛ صفحه را نبند)`); $('mlOut').innerHTML = '';
+  try {
+    const res = await fetch('/api/ml/run-pooled', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ files, mode: $('mlPoolMode').value, model: $('mlModel').value, horizon: $('mlHorizon').value, slAtr: $('mlSl').value, rr: $('mlRr').value, costAtr: $('mlCost').value, folds: $('mlFolds').value, costMode: $('mlCostMode').value, costMult: $('mlCostMult').value, costSweep: !!sweep, features: [$('mlFTime').checked && 'time', $('mlFHtf').checked && 'htf'].filter(Boolean) }) });
+    const j = await res.json();
+    if (!res.ok) return mlMsg(j.error || 'آزمون انجام نشد', true);
+    mlMsg(''); mlRender(j);
+  } catch { mlMsg('ارتباط با سرور برقرار نشد', true); } finally { btns.forEach((b) => { b.disabled = false; }); }
+}
+$('mlTf').addEventListener('change', () => mlDrawLists(false));
+$('mlPoolList').addEventListener('change', (e) => {
+  const cb = e.target; if (!cb || cb.type !== 'checkbox') return;
+  if (!cb.checked) { mlPoolSel.delete(cb.value); return mlPoolCount(); }
+  const other = [...mlPoolSel].filter((f) => mlTfOf(f) !== mlTfOf(cb.value));
+  if (other.length) { other.forEach((f) => mlPoolSel.delete(f)); mlMsg(`آرشیوهای تایم‌فریم دیگر از انتخاب برداشته شد؛ آزمون چندنمادی فقط با یک تایم‌فریم کار می‌کند (${mlTfName(mlTfOf(cb.value))}).`); }
+  mlPoolSel.add(cb.value); mlDrawLists(false);
+});
+$('mlPoolAll').addEventListener('click', () => {
+  const tf = $('mlTf').value; if (!tf) return mlMsg('اول بالا یک تایم‌فریم انتخاب کن تا همه‌ی آرشیوهای همان تایم‌فریم تیک بخورند.', true);
+  mlPoolSel.clear(); mlList.filter((a) => mlTfOf(a.file) === tf).slice(0, 12).forEach((a) => mlPoolSel.add(a.file)); mlMsg(''); mlDrawLists(false);
+});
+$('mlPoolNone').addEventListener('click', () => { mlPoolSel.clear(); mlDrawLists(false); });
+async function mlGoMeta(sweep) {
+  const files = [...mlPoolSel], strategy = $('mlMetaStrategy').value;
+  if (!files.length) return mlMsg('دست‌کم یک آرشیو را در فهرست بالا تیک بزن', true);
+  if (!strategy) return mlMsg('یک استراتژی انتخاب کن', true);
+  const btns = [$('mlRun'), $('mlRunSweep'), $('mlPoolRun'), $('mlPoolSweep'), $('mlMetaRun'), $('mlMetaSweep')]; btns.forEach((b) => { b.disabled = true; });
+  mlMsg(`متالیبلینگ روی ${files.length} آرشیو… (چند دقیقه؛ صفحه را نبند)`); $('mlOut').innerHTML = '';
+  try {
+    const res = await fetch('/api/ml/run-meta', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ files, strategy, dir: $('mlMetaDir').value, mode: $('mlPoolMode').value, model: $('mlModel').value, horizon: $('mlHorizon').value, slAtr: $('mlSl').value, rr: $('mlRr').value, costAtr: $('mlCost').value, folds: $('mlFolds').value, costMode: $('mlCostMode').value, costMult: $('mlCostMult').value, costSweep: !!sweep, features: [$('mlFTime').checked && 'time', $('mlFHtf').checked && 'htf'].filter(Boolean) }) });
+    const j = await res.json();
+    if (!res.ok) return mlMsg(j.error || 'آزمون انجام نشد', true);
+    mlMsg(''); mlRender(j);
+  } catch { mlMsg('ارتباط با سرور برقرار نشد', true); } finally { btns.forEach((b) => { b.disabled = false; }); }
+}
+async function mlLoadStrategies() {
+  try {
+    const j = await (await fetch('/api/ml/strategies', { cache: 'no-store' })).json(), sel = $('mlMetaStrategy'), old = sel.value;
+    sel.innerHTML = j.strategies.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}${x.id === j.active ? ' (فعال)' : ''}${x.custom ? ' — سفارشی' : ''}</option>`).join('');
+    sel.value = old && j.strategies.some((x) => x.id === old) ? old : (j.strategies.some((x) => x.id === j.active) ? j.active : (j.strategies[0] || {}).id);
+  } catch { /* the list is only a convenience; the run itself reports a missing strategy */ }
+}
+const mlAutoReason = { disabled: 'خاموش است', running: 'یک کار در حال اجراست', outside_window: 'بیرون از ساعت‌های بیکاری', lab_busy: 'آزمایشگاه مشغول آزمون دستی است', cpu_busy: 'CPU کامپیوتر بالاست', nothing_to_do: 'همه‌ی ترکیب‌ها به‌روزند', started: 'کار تازه‌ای شروع شد', preempted: 'کار متوقف شد (آزمون دستی اولویت دارد)؛ بعداً دوباره امتحان می‌شود', no_sealed_date: 'تاریخ کنارگذاری تنظیم نشده', idle: 'منتظر نوبت بعدی', error: 'خطا' };
+const mlAutoKindName = { crypto: 'کریپتو', mt5: 'MetaTrader', stock: 'سهام', forex: 'فارکس TV', other: 'دیگر' };
+const mlAutoStatusName = { candidate: ['نامزد (بعد از اصلاح هنوز معنادار)', '#2e9d57'], luck_likely: ['احتمالاً اقبال', '#d9a441'], forward_passed: ['قبول در بررسی نهایی', '#2e9d57'], forward_failed: ['رد در بررسی نهایی', '#d9534f'] };
+let mlAutoDirty = false, mlAutoSealedShown = '', mlAutoLast = null;
+function mlAutoFill(st) {
+  const x = st.settings;
+  $('mlAutoEnabled').checked = x.enabled; $('mlAutoStart').value = x.startHour; $('mlAutoEnd').value = x.endHour; $('mlAutoCpu').value = x.maxCpu; $('mlAutoPause').value = x.pauseSec;
+  $('mlAutoLong').checked = x.dirs.includes('long'); $('mlAutoShort').checked = x.dirs.includes('short'); $('mlAutoMinArch').value = x.minArchives; $('mlAutoCustom').checked = x.includeCustom;
+  document.querySelectorAll('.mlAutoKind').forEach((c) => { c.checked = x.kinds.includes(c.value); });
+  mlAutoSealedShown = x.sealedFrom != null ? new Date(x.sealedFrom * 1000).toISOString().slice(0, 10) : ''; $('mlAutoSealed').value = mlAutoSealedShown;
+  $('mlAutoStrats').innerHTML = st.strategies.filter((q) => x.includeCustom || !q.custom).map((q) => `<label style="margin-inline-end:8px"><input type="checkbox" class="mlAutoStrat" value="${esc(q.id)}"${!x.strategies.length || x.strategies.includes(q.id) ? ' checked' : ''}> ${esc(q.name)}</label>`).join('');
+  mlAutoDirty = false;
+}
+function mlAutoRender(st) {
+  mlAutoLast = st;
+  if (!mlAutoDirty) mlAutoFill(st);
+  const c = st.candles, b = st.board, cur = st.current, n = (v) => Number(v).toLocaleString('en');
+  const ch = c.lastChange ? ` — آخرین به‌روزرسانی: ${c.lastChange.delta > 0 ? '+' : ''}${n(c.lastChange.delta)} کندل (${new Date(c.lastChange.at).toISOString().slice(0, 16).replace('T', ' ')})` : '';
+  $('mlAutoStatus').innerHTML = `<div><b>وضعیت:</b> ${cur ? `در حال اجرا: ${esc(cur.strategyName)} · ${cur.dir === 'short' ? 'فروش' : 'خرید'} · ${mlTfName(cur.tf)} ${esc(mlAutoKindName[cur.group] || cur.group || '')} (${cur.files} آرشیو)${cur.kind === 'forward' ? ' — بررسی نهایی' : ''}` : esc(mlAutoReason[st.reason] || st.reason)}${st.settings.enabled ? '' : ' (خاموش)'}${st.cpu != null ? ` · CPU ${fa(st.cpu, 0)}٪` : ''} · ${st.inWindow ? 'داخل' : 'بیرون از'} ساعت‌های بیکاری · در صف: ${st.queueLeft} ترکیب (${st.queueNew} تازه)</div>
+    <div><b>منبع کندل‌ها:</b> ${c.archives} آرشیو، مجموعاً <b>${n(c.total)}</b> کندل${ch}<br>در گروه‌های قابل‌آزمون (${c.usedFiles} آرشیو): <b>${n(c.search)}</b> کندل برای جست‌وجو + <b>${n(c.sealed)}</b> کندل کنارگذاشته (فقط برای بررسی نهایی). ${c.universes.map((u) => `${mlTfName(u.tf)} ${esc(mlAutoKindName[u.kind] || u.kind)}: ${u.files} آرشیو / ${n(u.candles)} کندل`).join(' · ') || 'هیچ گروهی با آرشیو کافی نیست'}</div>
+    <div><b>خلاصه:</b> ${b.tested} ترکیب آزموده شد${b.errors ? ` (${b.errors} تا سیگنال کافی نداشت)` : ''}. در ${b.rawSignificant} تا آزمون جایگشت معاملات زیر ۵٪ شد؛ بعد از اصلاح برای تعداد ترکیب‌ها: ${b.adjSignificant}. فقط از روی اقبال، حدود ${fa(b.expectedByLuck, 1)} تا انتظار می‌رفت.${st.lastFinished ? ` آخرین کار: ${new Date(st.lastFinished.at * 1000).toISOString().slice(0, 16).replace('T', ' ')}${st.lastFinished.ok ? '' : ' (ناموفق: ' + esc(st.lastFinished.error || '') + ')'}.` : ''}</div>`;
+  const rows = b.top;
+  $('mlAutoBoard').innerHTML = rows.length ? `<b>بهترین ترکیب‌ها</b> (فقط آن‌هایی که ≥ ۵۰ معامله، میانگین مثبت و بهتر از «گرفتن همه» دارند؛ مرتب بر اساس p اصلاح‌شده)<div style="overflow-x:auto"><table style="border-collapse:collapse;margin-top:4px;min-width:900px"><tr class="muted">${['استراتژی', 'جهت', 'گروه', 'سیگنال', 'همه‌ی سیگنال‌ها', 'با فیلتر', 'تفاوت', 'p خام', 'p اصلاح‌شده', 'AUC', 'بازه‌ی سودده', 'کندل منبع', 'وضعیت'].map((h) => `<td style="padding:3px 8px">${h}</td>`).join('')}</tr>${rows.map((r) => { const sn = mlAutoStatusName[r.status] || [r.status, '#888'], f = r.forward;
+    return `<tr title="${esc(r.files.join(', '))}"><td style="padding:3px 8px">${esc(r.strategyName)}</td><td style="padding:3px 8px">${r.dir === 'short' ? 'فروش' : 'خرید'}</td><td style="padding:3px 8px">${mlTfName(r.tf)} ${esc(mlAutoKindName[r.kind] || r.kind)} (${r.files.length})</td><td style="padding:3px 8px">${r.signals}</td><td style="padding:3px 8px;direction:ltr">${r.takeAll.trades}: ${fa(r.takeAll.meanR)} R</td><td style="padding:3px 8px;direction:ltr">${r.selected.trades}: ${fa(r.selected.meanR)} R</td><td style="padding:3px 8px;direction:ltr">${r.gainR > 0 ? '+' : ''}${fa(r.gainR)} R</td><td style="padding:3px 8px">${r.pTrade == null ? '—' : fa(r.pTrade * 100, 1) + '٪'}</td><td style="padding:3px 8px"><b>${fa(r.pAdj * 100, 1)}٪</b></td><td style="padding:3px 8px;direction:ltr">${fa(r.auc, 3)}${r.aucCI ? ` (${fa(r.aucCI[0], 3)}–${fa(r.aucCI[1], 3)})` : ''}</td><td style="padding:3px 8px">${r.foldsGood} از ${r.foldsN}</td><td style="padding:3px 8px">${n(r.candlesUsed)}</td><td style="padding:3px 8px"><span style="color:${sn[1]}">${sn[0]}</span>${f ? (f.ok ? `<br><span class="muted" style="font-size:12px">نهایی: ${f.selected.trades} معامله، ${fa(f.selected.meanR)} R در برابر ${fa(f.takeAll.meanR)} R برای همه · p ${f.pTrade == null ? '—' : fa(f.pTrade * 100, 1) + '٪'}</span>` : `<br><span class="muted" style="font-size:12px">${esc(f.error || '')}</span>`) : `<br><button class="runbtn secondary mlAutoFwd" data-id="${esc(r.id)}" style="padding:3px 10px;font-size:12px" title="یک‌بار: آموزش روی داده‌ی قبل از تاریخ کنارگذاری، آزمون روی داده‌ی بعد از آن">بررسی نهایی</button>`}</td></tr>`; }).join('')}</table></div><div class="muted" style="margin-top:4px;line-height:1.8">«نامزد» یعنی بعد از اصلاح برای تعداد ترکیب‌ها هنوز معنادار است، نه اینکه کار می‌کند؛ فقط «قبول در بررسی نهایی» روی داده‌ای که جست‌وجو هرگز ندیده شواهد جدی است، و حتی آن هم باید بعد از آن مدتی در حالت کاغذی دیده شود.</div>` : `<span class="muted">هنوز ترکیبی شرط‌های اولیه را نداشته (دست‌کم ۵۰ معامله، میانگین مثبت بعد از هزینه، و بهتر از گرفتن همه‌ی سیگنال‌ها).</span>`;
+}
+async function mlAutoPoll() { try { mlAutoRender(await (await fetch('/api/ml/auto/status', { cache: 'no-store' })).json()); } catch { /* the next poll will try again */ } }
+async function mlAutoPost(url, body, okMsg) {
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) }), j = await res.json();
+    if (!res.ok) return mlMsg(j.error || 'انجام نشد', true);
+    mlMsg(okMsg || ''); const st = j.status || j; mlAutoRender(st); return j;
+  } catch { mlMsg('ارتباط با سرور برقرار نشد', true); }
+}
+function mlAutoCollect() {
+  const kinds = [...document.querySelectorAll('.mlAutoKind:checked')].map((c) => c.value), dirs = [$('mlAutoLong').checked && 'long', $('mlAutoShort').checked && 'short'].filter(Boolean);
+  const all = [...document.querySelectorAll('.mlAutoStrat')], sel = all.filter((c) => c.checked).map((c) => c.value);
+  const patch = { enabled: $('mlAutoEnabled').checked, startHour: +$('mlAutoStart').value, endHour: +$('mlAutoEnd').value, maxCpu: +$('mlAutoCpu').value, pauseSec: +$('mlAutoPause').value, dirs, kinds, minArchives: +$('mlAutoMinArch').value, includeCustom: $('mlAutoCustom').checked,
+    strategies: sel.length === all.length ? [] : sel,
+    base: { model: $('mlModel').value, horizon: $('mlHorizon').value, slAtr: $('mlSl').value, rr: $('mlRr').value, folds: $('mlFolds').value, costAtr: $('mlCost').value, costMode: $('mlCostMode').value, costMult: $('mlCostMult').value, features: [$('mlFTime').checked && 'time', $('mlFHtf').checked && 'htf'].filter(Boolean) } };
+  const d = $('mlAutoSealed').value; if (d && d !== mlAutoSealedShown) patch.sealedFrom = Math.floor(Date.parse(d + 'T00:00:00Z') / 1000);
+  return patch;
+}
+$('mlAutoForm').addEventListener('input', () => { mlAutoDirty = true; });
+$('mlAutoSave').addEventListener('click', () => { if (!$('mlAutoKindsOk') && !document.querySelector('.mlAutoKind:checked')) return mlMsg('دست‌کم یک بازار را انتخاب کن', true); mlAutoPost('/api/ml/auto/settings', mlAutoCollect(), 'تنظیمات ذخیره شد').then(() => { mlAutoDirty = false; mlAutoPoll(); }); });
+$('mlAutoNow').addEventListener('click', async () => { const j = await mlAutoPost('/api/ml/auto/run-now', {}, ''); if (j && j.result && !j.result.started) mlMsg(mlAutoReason[j.result.reason] || j.result.reason, true); else if (j) mlMsg('یک ترکیب شروع شد؛ نتیجه‌اش بعد از چند دقیقه در جدول می‌آید'); });
+$('mlAutoReset').addEventListener('click', () => { if (confirm('همه‌ی نتایج آزمایشگاه خودکار پاک شود؟ (دفتر پژوهش پاک نمی‌شود)')) mlAutoPost('/api/ml/auto/reset', { confirm: true }, 'پاک شد'); });
+$('mlAutoBoard').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.mlAutoFwd'); if (!btn) return;
+  if (!confirm('بررسی نهایی فقط یک‌بار برای هر ترکیب اجرا می‌شود و بعدش تاریخ کنارگذاری قفل می‌شود. ادامه؟')) return;
+  const j = await mlAutoPost('/api/ml/auto/forward', { id: btn.dataset.id }, '');
+  if (j && j.result) { const r = j.result; if (r.started) mlMsg('بررسی نهایی شروع شد؛ نتیجه بعد از چند دقیقه در همان ردیف می‌آید'); else mlMsg(r.reason === 'not_enough_sealed' ? `کندل کنارگذاشته هنوز کم است (${r.sealed} از دست‌کم ${r.need}) — صبر کن ربات کندل بیشتری ذخیره کند` : (mlAutoReason[r.reason] || r.reason), true); }
+});
+$('mlAutoBox').addEventListener('toggle', () => { if ($('mlAutoBox').open) mlAutoPoll(); });
+setInterval(() => { if ($('mlAutoBox').open && document.visibilityState === 'visible') mlAutoPoll(); }, 15000);
+setInterval(() => { if (document.visibilityState === 'visible' && $('mlSrcInfo') && $('mlSrcInfo').offsetParent !== null) mlLoadArchives(false); }, 60000);
+$('mlMetaRun').addEventListener('click', () => mlGoMeta(false));
+$('mlMetaSweep').addEventListener('click', () => mlGoMeta(true));
+mlLoadStrategies();
+$('mlPoolRun').addEventListener('click', () => mlGoPooled(false));
+$('mlPoolSweep').addEventListener('click', () => mlGoPooled(true));
+$('mlRun').addEventListener('click', () => mlGo(false));
+$('mlRunSweep').addEventListener('click', () => mlGo(true));
+$('mlRefresh').addEventListener('click', () => mlLoadArchives(true));
+mlLoadArchives();
+
+$('aiClearKey').addEventListener('click', async () => { if (confirm('کلید ذخیره‌شده روی سرور پاک شود؟')) { if (await aiSaveSettings({ clearKey: true })) aiSetSay('کلید پاک شد.'); } });
+$('aiProvider').addEventListener('change', async () => { $('aiModel').value = ''; $('aiBase').value = ''; await aiSaveSettings(); });
+$('aiUseTgProxy').addEventListener('click', async () => {
+  try { const v = await (await fetch('/api/telegram')).json(); if (v && v.proxy) { $('aiProxy').value = v.proxy; aiSetSay('پروکسی تلگرام کپی شد؛ «ذخیره» را بزن.'); } else aiSetSay('در اتصال تلگرام پروکسی ذخیره نشده؛ آدرس را دستی بنویس.', true); }
+  catch { aiSetSay('خواندن پروکسی تلگرام ممکن نشد؛ آدرس را دستی بنویس.', true); }
+});
+$('aiPing').addEventListener('click', async () => {
+  $('aiPing').disabled = true; aiSetSay('در حال آزمایش…');
+  if ($('aiKey').value.trim() || $('aiModel').value.trim()) await aiSaveSettings();
+  const { ok, d } = await aiJson('/api/ai/ping');
+  aiSetSay(ok ? 'اتصال برقرار است ✓' : (d.error || 'خطا'), !ok);
+  $('aiPing').disabled = false;
+});
+function renderAiList(list) {
+  const el = $('aiList'); if (!el) return;
+  if (!list.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="aibox"><b>استراتژی‌های ساخته‌شده از توضیح</b>${list.map((x) => x.valid
+    ? `<div style="margin-top:8px"><b>${esc(x.name)}</b> <button class="runbtn secondary" data-ai-use="${esc(x.id)}" style="padding:2px 10px;font-size:12px">انتخاب برای بک‌تست</button> <button class="runbtn secondary" data-ai-del="${esc(x.id)}" style="padding:2px 10px;font-size:12px">حذف</button><pre class="muted" style="font-size:12px">${esc(x.text.entry)}\n${esc(x.text.exit)}</pre></div>`
+    : `<div class="warn" style="margin-top:8px">«${esc(x.name || x.id)}» غیرفعال است: ${esc(x.reason || '')}</div>`).join('')}</div>`;
+}
+$('aiList').addEventListener('click', async (ev) => {
+  const use = ev.target.dataset && ev.target.dataset.aiUse, del = ev.target.dataset && ev.target.dataset.aiDel;
+  if (use) { try { $('btStrategy').value = use; $('btStrategy').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {} return; }
+  if (!del || !confirm('این استراتژی حذف شود؟')) return;
+  const r = await fetch('/api/custom/rules/' + encodeURIComponent(del), { method: 'DELETE' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) aiSay(d.error || 'خطا', true); else { aiSay('حذف شد.'); await loadMeta(); }
+});
+
+// ---------- backtest tab ----------
+function peSettings() {
+  return { enabled: $('peEnabled').checked, atR: Number($('peAtR').value) || 1, closePct: Number($('peClosePct').value) || 50, moveStopToBreakeven: $('peBreakeven').checked };
+}
+function btBody() {
+  const body = { tf: $('btTf').value, candles: Number($('btCandles').value) || 2000, refresh: $('btRefresh').checked, strategyId: $('btStrategy').value, source: $('btSource').value };
+  if (btSelected.size) body.symbols = [...btSelected]; // nothing selected -> the server uses the whole watch list
+  if ($('peEnabled').checked) body.partialExit = peSettings();
+  return body;
+}
+$('peEnabled').addEventListener('change', () => { $('peFields').style.display = $('peEnabled').checked ? 'flex' : 'none'; });
+$('peApply').addEventListener('click', async () => {
+  const settings = { risk: { partialExit: peSettings() } };
+  if (!confirm('این تنظیمات خروج پلکانی همین الان روی ربات (سیگنال/آزمایشی/زنده) اعمال می‌شود و بعد از ری‌استارت هم می‌ماند. ادامه می‌دهید؟')) return;
+  $('peApply').disabled = true;
+  try {
+    const res = await fetch('/api/backtest/sweep/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ settings }) });
+    const data = await res.json();
+    $('peApply').disabled = false;
+    if (!res.ok || data.error) { alert('خطا: ' + (data.error || res.status)); return; }
+    $('peApply').textContent = 'اعمال شد ✓';
+    setTimeout(() => { $('peApply').textContent = 'اعمال همین تنظیمات روی ربات'; }, 2500);
+    loadMeta();
+  } catch (err) { $('peApply').disabled = false; alert('خطا: ' + err.message); }
+});
+function btSetBusy(busy, msg) {
+  $('btRun').disabled = busy; $('btSweep').disabled = busy;
+  $('btStatus').textContent = msg || '';
+  if (busy) $('btResults').style.display = 'none';
+}
+function statRow(vals) {
+  return `<div class="stats">${vals.map(([label, value, cls]) => `<div class="stat"><b class="${cls || ''}">${value}</b><span>${esc(label)}</span></div>`).join('')}</div>`;
+}
+function renderReport(rep) {
+  const s = rep.summary, stratName = rep.strategy ? rep.strategy.name : '';
+  let html = `<div class="muted" style="margin-bottom:10px">استراتژی: <b>${esc(stratName)}</b> · ${rep.meta.symbols} نماد · تایم‌فریم ${esc(rep.meta.tf)} · ${rep.meta.from} تا ${rep.meta.to}</div>`;
+  window.__lastRep = rep; // the result on screen, for the "put this on the bot" button
+  if (rep.source === 'mt5') html += `<div class="muted" style="margin-bottom:10px">منبع داده: MetaTrader (واردشده؛ جدا از داده‌ی TradingView)</div>`;
+  if (rep.strategy && rep.strategy.id) html += `<div style="margin-bottom:10px"><button class="runbtn secondary" data-applyrep="1">این استراتژی و تایم‌فریم را روی ربات بگذار</button> <span class="muted" style="font-size:12px">فقط «استراتژی» (${esc(stratName)}) و «تایم‌فریم» (${esc(rep.meta.tf)}) عوض می‌شود؛ ریسک و RSI فعلی ربات می‌ماند. این اعمال است، نه تأیید: اعتبار آماری را از آزمون‌های بالا و «مقایسه‌ی تایم‌فریم» بخوانید.</span></div>`;
+  if (rep.strategyError) html += `<div class="warn">کد استراتژی روی ${rep.strategyError.count} کندل خطا داد و آن کندل‌ها «بدون سیگنال» حساب شدند: ${esc(rep.strategyError.message)}</div>`;
+  if (rep.skipped && rep.skipped.length) html += `<div class="warn">رد شد (داده‌ی کافی نبود): ${rep.skipped.map((x) => esc(x.symbol)).join('، ')}</div>`;
+  if (s.n === 0 && rep.funnel) html += rep.funnel.edges === 0
+    ? `<div class="warn">در این بازه سیگنال خریدی از استراتژی «${esc(stratName)}» صادر نشده؛ یعنی فیلترها مقصر نیستند و بازار در این مدت سیگنالی نداشته. تعداد کندل یا تایم‌فریم بزرگ‌تر یا استراتژی دیگری را امتحان کنید.</div>`
+    : `<div class="warn">استراتژی ${rep.funnel.edges} بار سیگنال خرید داد ولی هیچ‌کدام معامله نشد؛ یعنی فیلترها همه را رد کرده‌اند. جدول «کجا از بین رفتند» پایین‌تر دقیقاً نشان می‌دهد کدام فیلتر مانع بود.</div>`;
+  html += statRow([
+    ['بازده کل', pct(s.ret), s.ret >= 0 ? 'up' : 'down'],
+    ['Buy & Hold', pct(s.buyHold)],
+    ['نرخ برد', s.winRate.toFixed(1) + '%'],
+    ['Profit Factor', s.pf == null || s.pf === Infinity ? '∞' : s.pf.toFixed(2)],
+    ['میانگین R', s.avgR.toFixed(2) + 'R'],
+    ['حداکثر افت', s.maxDD.toFixed(2) + '%' + (s.ddHalt ? ' (متوقف شد)' : '')],
+    ['تعداد معامله', s.n],
+    ['بدترین توالی باخت', s.worstStreak],
+  ]);
+  if (rep.curve && rep.curve.length > 1) html += `<h3>منحنی سرمایه در طول تست</h3><div class="chartbox">${lineSvg(rep.curve, s.startCapital)}</div><div class="cap">${fmt(Math.min(...rep.curve.map((p) => p[1])))} … ${fmt(Math.max(...rep.curve.map((p) => p[1])))} · شروع ${fmt(s.startCapital)} → پایان ${fmt(s.endEquity)}</div>`;
+  html += funnelHtml(rep);
+  html += `<div class="muted" style="margin-bottom:10px">بررسی بیش‌برازش: ۷۰٪ اول ${pct(rep.split.first70.ret)} (${rep.split.first70.trades} معامله) · ۳۰٪ آخر (ندیده) ${pct(rep.split.last30.ret)} (${rep.split.last30.trades} معامله)</div>`;
+  html += validationHtml(rep);
+  html += '<table><thead><tr><th>نماد</th><th class="num">معاملات</th><th class="num">برد٪</th><th class="num">سود/زیان خالص</th></tr></thead><tbody>';
+  rep.bySymbol.forEach((x) => { html += `<tr><td>${esc(x.symbol)}</td><td class="num">${x.trades}</td><td class="num">${x.winPct == null ? '—' : x.winPct.toFixed(0) + '%'}</td><td class="num ${x.pnl >= 0 ? 'up' : 'down'}">${x.pnl.toFixed(2)}</td></tr>`; });
+  html += '</tbody></table>';
+  const exits = Object.entries(rep.exits).map(([k, v]) => `${esc(k)}: ${v}`).join(' · ');
+  html += `<div class="muted">دلیل خروج معاملات: ${exits || '—'}</div>`;
+  $('btResults').innerHTML = html; $('btResults').style.display = 'block';
+}
+function funnelHtml(rep) {
+  const f = rep.funnel, sc = rep.scenarios;
+  if (!f) return '';
+  const p = (a, n) => (n ? Math.round(a / n * 100) + '٪' : '—');
+  const row = (label, n, note) => `<tr><td>${label}</td><td class="num">${n}</td><td>${note || ''}</td></tr>`;
+  let html = '<h3>سیگنال‌های خرید کجا از بین رفتند؟</h3><table><thead><tr><th>مرحله</th><th class="num">تعداد</th><th></th></tr></thead><tbody>';
+  html += row('استراتژی سیگنال خرید داد (سیگنال خام)', f.edges);
+  html += row('بعد از فیلتر تأیید (MACD / حجم)', f.confirmed, f.edges ? `${f.edges - f.confirmed} سیگنال رد شد` : '');
+  html += row('رد شده به‌خاطر محدودیت‌ها (سقف پوزیشن، توقف، فاصله بعد از معامله)', f.limits);
+  html += row('رد شده به‌خاطر فیلتر روند (قیمت زیر EMA)', f.trend);
+  html += row('رد شده به‌خاطر حجم کم / سقف گروه / نبود داده‌ی ATR', f.small + f.group + f.noAtr);
+  html += row('<b>معامله‌ی باز شده</b>', `<b>${f.opened}</b>`);
+  html += '</tbody></table>';
+  html += `<div class="muted" style="margin-bottom:8px">هر فیلتر به‌تنهایی چند درصد سیگنال‌ها را قبول می‌کرد: MACD در حال برگشت ${p(f.macdOk, f.macdN)} · حجم بالای میانگین ${p(f.volOk, f.volN)} · قیمت بالای EMA روند ${p(f.trendOk, f.trendN)}</div>`;
+  if (sc && sc.length) {
+    html += '<h3>اگر فیلترها خاموش بودند چه می‌شد؟</h3><table><thead><tr><th>حالت</th><th class="num">معاملات</th><th class="num">بازده</th><th class="num">افت</th><th class="num">برد٪</th></tr></thead><tbody>';
+    sc.forEach((x) => { html += `<tr><td>${esc(x.label)}</td><td class="num">${x.trades}</td><td class="num ${x.ret >= 0 ? 'up' : 'down'}">${pct(x.ret)}</td><td class="num">${x.maxDD.toFixed(1)}%</td><td class="num">${x.trades ? x.winRate.toFixed(0) + '%' : '—'}</td></tr>`; });
+    html += '</tbody></table><div class="muted" style="margin-bottom:12px">فیلتر بیشتر = معامله‌ی کمتر، ولی فقط وقتی ارزش دارد که بازده یا افت را واقعاً بهتر کند. اگر بدون فیلتر بهتر است، فیلتر را شل کنید؛ اگر معاملات خیلی کم است (زیر ۳۰) نتیجه قابل اتکا نیست.</div>';
+  }
+  return html;
+}
+function walkForwardHtml(wf) {
+  if (!wf) return '';
+  let html = '<h3>بررسی روی چند بازه‌ی جداگانه (Walk-Forward)</h3>';
+  html += '<div class="muted" style="margin-bottom:6px">همان تنظیمات، روی ۵ بازه‌ی پشت‌سرهم و جدا از هم دوباره سنجیده می‌شود — یک تنظیم که فقط در یکی از این بازه‌ها خوب بوده و در بقیه بد، در واقعیت قابل اعتماد نیست.</div>';
+  html += '<table><thead><tr><th>بازه</th><th class="num">بازده</th><th class="num">معاملات</th><th class="num">برد٪</th></tr></thead><tbody>';
+  wf.windows.forEach((w, i) => { html += `<tr><td>بازه ${i + 1} از ${wf.folds}</td><td class="num ${w.ret >= 0 ? 'up' : 'down'}">${pct(w.ret)}</td><td class="num">${w.trades}</td><td class="num">${w.trades ? w.winRate.toFixed(0) + '%' : '—'}</td></tr>`; });
+  html += '</tbody></table>';
+  const cls = wf.profitableFolds >= Math.ceil(wf.folds * 0.6) ? 'up' : 'down';
+  html += `<div class="muted" style="margin-bottom:14px">سودده در <b class="${cls}">${wf.profitableFolds} از ${wf.folds}</b> بازه · بدترین بازه ${pct(wf.worstFoldRet)} · میانگین بازه‌ها ${pct(wf.avgFoldRet)}</div>`;
+  return html;
+}
+function monteCarloHtml(mc) {
+  if (mc === null) return '<div class="muted" style="margin-bottom:14px">تعداد معاملات برای شبیه‌سازی مونت‌کارلو کافی نیست (حداقل ۱۰ معامله لازم است).</div>';
+  if (!mc) return '';
+  let html = '<h3>اگر همین استراتژی را یک دور دیگر هم اجرا می‌کردی؟ (مونت‌کارلو، ۱۰۰۰ مسیر فرضی)</h3>';
+  html += `<div class="muted" style="margin-bottom:6px">از همین ${mc.trades} معامله (با همین نسبت برد/باخت) ${mc.iterations} مسیر فرضیِ دیگر با همین تعداد معامله ساخته شده — هرکدام با برداشتن تصادفی از همین معاملات (بعضی‌ها تکرار می‌شوند، بعضی اصلاً نمی‌آیند). بازده واقعی (${pct(mc.actualRet)}) فقط یکی از این مسیرهای ممکن بود؛ محدوده‌ی پایین نشان می‌دهد با همین استراتژی، دفعه‌ی بعد چقدر ممکن است نتیجه بهتر یا بدتر از این باشد.</div>`;
+  html += statRow([
+    ['بازده واقعی این بک‌تست', pct(mc.actualRet), mc.actualRet >= 0 ? 'up' : 'down'],
+    ['میانه‌ی بازده (۵۰٪ احتمال)', pct(mc.retMedian), mc.retMedian >= 0 ? 'up' : 'down'],
+    ['محدوده‌ی معمول (۵٪ تا ۹۵٪)', `${pct(mc.retP5)} … ${pct(mc.retP95)}`],
+    ['احتمال پایان با ضرر', mc.probLoss.toFixed(0) + '%', mc.probLoss > 30 ? 'down' : ''],
+    ['افت معمول (میانه)', mc.ddMedian.toFixed(1) + '%'],
+    ['بدترین افت ممکن (۹۵٪ احتمال کمتر)', mc.ddP95.toFixed(1) + '%'],
+    ['بدترین افت در شبیه‌سازی', mc.ddWorst.toFixed(1) + '%', 'down'],
+    ['بدترین توالی باخت ممکن', mc.streakWorst],
+  ]);
+  return html;
+}
+function validationHtml(rep) {
+  return walkForwardHtml(rep.walkForward) + monteCarloHtml(rep.monteCarlo);
+}
+function renderSweep(sw) {
+  const stratName = sw.strategy ? sw.strategy.name : '';
+  let html = (sw.strategyError ? `<div class="warn">کد استراتژی روی ${sw.strategyError.count} کندل خطا داد: ${esc(sw.strategyError.message)}</div>` : '') + `<div class="muted" style="margin-bottom:10px">استراتژی: <b>${esc(stratName)}</b> · ${sw.total} ترکیب امتحان شد · رتبه‌بندی فقط روی ${Math.round((1 - (sw.holdFraction || 0)) * 100)}٪ اول داده (Train و TEST داخل همان)؛ ${Math.round((sw.holdFraction || 0) * 100)}٪ آخر از هر انتخابی کنار گذاشته شده و فقط یک بار برای تأیید بهترین نامزد دیده می‌شود</div>`;
+  const wfBadge = (wf) => { if (!wf) return '—'; const cls = wf.profitableFolds >= Math.ceil(wf.folds * 0.6) ? 'up' : 'down'; return `<span class="${cls}">${wf.profitableFolds}/${wf.folds}</span>`; };
+  if (sw.recommended) {
+    const r = sw.recommended;
+    html += `<div class="chartbox" style="padding:12px;margin-bottom:14px;border-color:var(--up)">
+      <div style="margin-bottom:6px">✓ <b>نامزد قابل‌قبول:</b> ${esc(r.label)} — از همه‌ی بررسی‌ها گذشت: Train و TEST، Walk-Forward، تعدیل برای تعداد تنظیمات مقایسه‌شده، و یک آزمون روی داده‌ی کنار گذاشته‌شده. این «نامزد» است نه اثبات؛ چند هفته حالت signal/paper هم لازم است.</div>
+      <div class="muted" style="margin-bottom:6px">Train ${pct(r.trainRet)} (${r.trainTrades} معامله) · TEST ${pct(r.testRet)} (${r.testTrades} معامله) · سودده در ${wfBadge(r.walkForward)} بازه‌ی جدا${r.stat ? ` · احتمال شانسی‌بودن (تعدیل‌شده برای ${r.stat.tests} تنظیم): ${(r.stat.pAdj * 100).toFixed(1)}٪` : ''}${r.holdout ? ` · داده‌ی کنار گذاشته‌شده: ${esc(r.holdout.reason)}` : ''}</div>
+      <button class="runbtn" data-apply="${esc(JSON.stringify(r.settings))}">اعمال این تنظیمات روی ربات</button>
+      <button class="runbtn secondary" data-detail="rec">جزئیات اعتبارسنجی (Walk-Forward کامل)</button>
+    </div>`;
+  } else {
+    const reasons = {
+      nomatch: 'هیچ ترکیبی معاملات کافی برای قضاوت نداشت.',
+      weak: 'هیچ ترکیبی هم روی Train و هم روی TEST مثبت نبود.',
+      inconsistent: 'بهترین ترکیب در بیشتر بازه‌های Walk-Forward سودده نبود.',
+      luck: `بهترین ترکیب بعد از احتساب اینکه ${sw.comparedSettings || 'چندین'} تنظیم با هم مقایسه شده، هنوز می‌تواند فقط شانس باشد.`,
+      holdout_failed: 'بهترین ترکیب روی داده‌ی کنار گذاشته‌شده (که در انتخاب نقشی نداشت) جواب نداد.',
+      holdout_inconclusive: 'روی داده‌ی کنار گذاشته‌شده معامله‌ی کافی برای تأیید نبود (حداقل ۱۰).',
+    };
+    const why = reasons[sw.noRecommendationReason] || 'دلیل نامشخص.';
+    html += `<div class="warn">هیچ تنظیمی تأیید نشد: ${why} کندل بیشتری امتحان کنید یا تنظیمات فعلی را نگه دارید. ردیف‌های زیر فقط نامزدهای رتبه‌بندی‌شده‌اند و تأییدنشده‌اند.</div>`;
+  }
+  html += '<table><thead><tr><th>تنظیمات</th><th class="num">Train٪</th><th class="num">Train افت</th><th class="num">معاملات</th><th class="num">TEST٪</th><th class="num">TEST افت</th><th class="num">معاملات</th><th class="num">Walk-Forward</th><th></th></tr></thead><tbody>';
+  const row = (r, hl, idx) => `<tr${hl ? ' style="background:#202b3c"' : ''}><td>${esc(r.label)}</td><td class="num">${pct(r.trainRet)}</td><td class="num">${r.trainDD.toFixed(1)}%</td><td class="num">${r.trainTrades}</td><td class="num ${r.testRet >= 0 ? 'up' : 'down'}">${pct(r.testRet)}</td><td class="num">${r.testDD.toFixed(1)}%</td><td class="num">${r.testTrades}</td><td class="num">${wfBadge(r.walkForward)}</td><td style="white-space:nowrap">${idx != null ? `<button class="runbtn secondary" style="padding:2px 8px;font-size:11px" data-detail="${idx}">جزئیات</button> ` : ''}${hl ? '' : `<button class="runbtn secondary" style="padding:2px 8px;font-size:11px" data-apply="${esc(JSON.stringify(r.settings))}">اعمال</button>`}</td></tr>`;
+  sw.top.forEach((r, i) => { html += row(r, false, i); });
+  html += row(sw.current, true);
+  html += '</tbody></table>';
+  html += '<div id="sweepDetail"></div>';
+  html += '<div class="muted">فقط تنظیماتی را انتخاب کنید که TEST هم مثبت و نزدیک به Train باشد؛ برد در Train و باخت در TEST یعنی بیش‌برازش روی گذشته. ستون Walk-Forward نشان می‌دهد در چند بازه از ۵ بازه‌ی جدا سودده بوده — کمتر از ۳ یعنی نتیجه ثابت نیست.</div>';
+  lastSweep = sw;
+  $('btResults').innerHTML = html; $('btResults').style.display = 'block';
+}
+let lastSweep = null;
+$('btResults').addEventListener('click', async (e) => {
+  const d = e.target.closest('[data-detail]');
+  if (d) {
+    const r = d.dataset.detail === 'rec' ? lastSweep.recommended : lastSweep.top[Number(d.dataset.detail)];
+    $('sweepDetail').innerHTML = r && r.walkForward ? walkForwardHtml(r.walkForward) : '';
+    $('sweepDetail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+  const b = e.target.closest('[data-apply]'); if (!b) return;
+  const settings = JSON.parse(b.dataset.apply);
+  const verified = !!(lastSweep && lastSweep.recommended && JSON.stringify(lastSweep.recommended.settings) === b.dataset.apply);
+  if (!confirm((verified ? '' : 'هشدار: این تنظیم از آزمون داده‌ی کنار گذاشته‌شده نگذشته یا اصلاً نامزد تأییدشده نیست؛ ممکن است فقط روی گذشته جواب داده باشد.\n\n') + 'این تنظیمات همین الان روی ربات (سیگنال/آزمایشی/زنده) اعمال می‌شود و بعد از ری‌استارت هم می‌ماند. ادامه می‌دهید؟')) return;
+  if (lastSweep && lastSweep.tf && botTf && lastSweep.tf !== botTf) {
+    const switched = await setBotTf(lastSweep.tf, `این تنظیمات روی تایم‌فریم ${TF_NAME[lastSweep.tf] || lastSweep.tf} آزمایش شده، ولی ربات الان روی ${TF_NAME[botTf] || botTf} کار می‌کند.\n\nتایم‌فریم ربات هم به ${TF_NAME[lastSweep.tf] || lastSweep.tf} عوض شود؟ (اگر «لغو» بزنید، تنظیمات روی تایم‌فریمی اعمال می‌شود که آزمایش نشده است.)`);
+    if (!switched && !confirm('تایم‌فریم ربات عوض نشد؛ تنظیمات فقط روی ' + (TF_NAME[botTf] || botTf) + ' اعمال می‌شود (آزمایش‌نشده). باز هم ادامه می‌دهید؟')) return;
+  }
+  b.disabled = true;
+  try {
+    const res = await fetch('/api/backtest/sweep/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ settings }) });
+    const data = await res.json();
+    if (!res.ok || data.error) { alert('خطا: ' + (data.error || res.status)); b.disabled = false; return; }
+    b.textContent = 'اعمال شد ✓';
+    loadMeta();
+  } catch (err) { alert('خطا: ' + err.message); b.disabled = false; }
+});
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-applyrep]');
+  const rep = window.__lastRep;
+  if (!b || !rep || !rep.strategy) return;
+  const id = rep.strategy.id, tf = String(rep.meta.tf);
+  if (!confirm(`روی ربات گذاشته شود؟\nاستراتژی: ${rep.strategy.name}\nتایم‌فریم: ${TF_NAME[tf] || tf}\n(ریسک و RSI فعلی ربات تغییر نمی‌کند)`)) return;
+  b.disabled = true;
+  try {
+    const res = await fetch('/api/backtest/sweep/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ settings: { strategy: { id } } }) });
+    const data = await res.json();
+    if (!res.ok || data.error) { alert('خطا: ' + (data.error || res.status)); b.disabled = false; return; }
+    if (tf !== botTf) await setBotTf(tf); // asks on its own; if declined the strategy stays applied, the timeframe does not
+    b.textContent = 'اعمال شد ✓';
+    loadMeta();
+  } catch (err) { alert('خطا: ' + err.message); b.disabled = false; }
+});
+function refreshTfWarn() {
+  const w = document.getElementById('tfWarn'), sel = document.getElementById('btTf');
+  if (!w || !sel || !botTf) return;
+  if (sel.value === botTf) { w.style.display = 'none'; return; }
+  w.style.display = 'block';
+  w.innerHTML = `⚠️ ربات الان روی ${TF_NAME[botTf] || botTf} کار می‌کند ولی شما ${TF_NAME[sel.value] || sel.value} را آزمایش می‌کنید؛ نتیجه فقط برای همان تایم‌فریم معتبر است. <a href="#" id="tfWarnBtn">ربات را روی ${TF_NAME[sel.value] || sel.value} بگذار</a>`;
+  document.getElementById('tfWarnBtn').onclick = (ev) => { ev.preventDefault(); setBotTf(sel.value); };
+}
+document.getElementById('btTf').addEventListener('change', refreshTfWarn);
+async function runBt(sweep) {
+  btSetBusy(true, sweep ? 'در حال دانلود داده و جستجوی تنظیمات… (ممکن است چند دقیقه طول بکشد)' : 'در حال دانلود داده و اجرای بک‌تست…');
+  try {
+    const res = await fetch(sweep ? '/api/backtest/sweep' : '/api/backtest', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(btBody()),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) { btSetBusy(false, 'خطا: ' + (data.error || res.status)); return; }
+    btSetBusy(false, '');
+    sweep ? renderSweep(data) : renderReport(data);
+    loadHistory();
+  } catch (e) { btSetBusy(false, 'خطا: ' + e.message); }
+}
+$('btRun').addEventListener('click', () => runBt(false));
+$('btSweep').addEventListener('click', () => runBt(true));
+
+// ---------- backtest history ----------
+function renderHistory(items) {
+  if (!items.length) { $('btHistory').innerHTML = '<div class="empty">هنوز بک‌تستی ذخیره نشده.</div>'; return; }
+  let html = '<table><thead><tr><th>زمان</th><th>نوع</th><th class="num">نتیجه</th><th></th></tr></thead><tbody>';
+  items.forEach((r) => {
+    const time = new Date(r.time).toLocaleString(TVLANG==='en'?'en':'fa-IR');
+    const kind = r.kind === 'sweep' ? 'Sweep' : 'بک‌تست';
+    const val = r.kind === 'sweep' ? (r.top1 ? r.top1.testRet : null) : (r.summary ? r.summary.ret : null);
+    const result = val == null ? '—' : (r.kind === 'sweep' ? 'بهترین TEST: ' : '') + pct(val);
+    const symCount = r.opts && r.opts.symbols ? r.opts.symbols.length : '؟';
+    const cls = val == null ? '' : (val >= 0 ? 'up' : 'down');
+    html += `<tr><td>${esc(time)}<br><small class="muted">${symCount} نماد · ${esc(r.opts ? r.opts.tf : '')}</small></td><td>${kind}</td>
+      <td class="num ${cls}">${esc(result)}</td>
+      <td><button class="runbtn secondary" style="padding:2px 10px;font-size:11px" data-load="${esc(r.id)}">نمایش</button></td></tr>`;
+  });
+  html += '</tbody></table>';
+  $('btHistory').innerHTML = html;
+}
+async function loadHistory() {
+  try { renderHistory(await (await fetch('/api/backtest/history')).json()); } catch {}
+}
+$('btHistory').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-load]'); if (!b) return;
+  const rec = await (await fetch('/api/backtest/history/' + b.dataset.load)).json();
+  if (rec.error) return;
+  rec.kind === 'sweep' ? renderSweep(rec.report) : renderReport(rec.report);
+  $('btResults').scrollIntoView({ behavior: 'smooth' });
+});
+$('btHistClear').addEventListener('click', async () => {
+  if (!confirm('همه‌ی تاریخچه‌ی بک‌تست پاک شود؟ این کار قابل بازگشت نیست.')) return;
+  await fetch('/api/backtest/history', { method: 'DELETE' });
+  loadHistory();
+});
+loadHistory();
+
+// ---------- multi-timeframe x multi-strategy comparison ----------
+function renderMxCharts(symbol, timeframes) {
+  const box = $('mxCharts');
+  box.style.display = 'grid';
+  box.style.gridTemplateColumns = 'repeat(auto-fit, minmax(260px, 1fr))';
+  box.style.gap = '10px';
+  box.innerHTML = timeframes.map((tf) => `<div class="chartbox"><div class="muted" style="font-size:11px;margin:2px 2px 4px">${esc(symbol)} · ${esc(tfLabel(tf))}</div><div id="mxChart_${tf.replace(/[^A-Za-z0-9]/g, '')}" style="height:220px"></div></div>`).join('');
+  timeframes.forEach((tf) => {
+    try {
+      new TradingView.widget({
+        container_id: 'mxChart_' + tf.replace(/[^A-Za-z0-9]/g, ''), symbol, interval: tf, theme: 'dark', style: '1', locale: TVLANG,
+        autosize: true, hide_side_toolbar: true, hide_top_toolbar: true, allow_symbol_change: false, save_image: false,
+      });
+    } catch {}
+  });
+}
+const MX_BADGE = { reliable: ['✅ قابل اتکا', 'up'], suspect: ['⚠️ مشکوک', ''], negative: ['❌ منفی', 'down'], insufficient: ['⏳ داده‌ی ناکافی', 'muted'] };
+function renderMxResults(data) {
+  const timeframes = [...new Set(data.cells.map((c) => c.tf))];
+  const strategies = [...new Set(data.cells.map((c) => c.strategyId))];
+  const cellMap = {}; data.cells.forEach((c) => { cellMap[c.tf + '|' + c.strategyId] = c; });
+  const nameOf = (id) => (data.cells.find((c) => c.strategyId === id) || {}).strategyName || id;
+  const d = (t) => new Date(t * 1000).toISOString().slice(0, 10);
+  let html = `<h3>نتیجه برای ${esc(data.symbol)}</h3>`;
+  if (data.window && data.window.days) html += `<div class="muted" style="margin-bottom:6px">بازه‌ی یکسان برای همه‌ی تایم‌فریم‌ها: ${d(data.window.from)} تا ${d(data.window.to)} (${data.window.days} روز) · ورود روی ${data.assumptions.fillMode === 'close' ? 'close' : 'open کندل بعد'} · کارمزد ${data.assumptions.costs.feePct}٪ + لغزش ${data.assumptions.costs.slippagePct}٪ هر طرف</div>`;
+  if (data.regime) {
+    const bh = (data.cells.find((c) => c.summary) || { summary: {} }).summary.buyHold;
+    html += `<div class="${data.regime.id === 'strong_up' ? 'warn' : 'muted'}" style="margin-bottom:6px">وضعیت بازار در این بازه: <b>${esc(data.regime.label)}</b>${bh != null ? ` (خرید-و-نگهداری ${pct(bh)})` : ''}.${data.regime.id === 'strong_up' ? ' استراتژی‌های فقط‌خرید در بازار صعودی قوی راحت‌تر خوب به نظر می‌رسند؛ نتیجه را روی بازه‌ای که ریزش هم دارد هم بسنج.' : ''}</div>`;
+  }
+  if (data.holdout) html += `<div class="muted" style="margin-bottom:6px">داوری فقط روی ${d(data.window.from)} تا ${d(data.holdout.from)} (${data.holdout.trainDays} روز) انجام شد؛ آخرین ${data.holdout.days} روز (تا ${d(data.holdout.to)}) کنار گذاشته شد و فقط برای تأیید نهایی نامزدها دیده می‌شود.</div>`;
+  if (data.trials) html += `<div class="muted" style="margin-bottom:6px">آزمایش‌های ثبت‌شده برای این نماد در ${data.trials.windowDays} روز اخیر (این اجرا + اجراها و Sweepهای قبلی): معادل <b>${data.trials.trials}</b> آزمایش مستقل؛ شانس‌ها روی همین عدد تعدیل شده‌اند. <button class="runbtn secondary" id="mxTrialsReset" type="button" style="padding:1px 8px;font-size:11px" title="فقط وقتی تحقیق تازه‌ای روی داده‌ی تازه شروع می‌کنی">شروع دوره‌ی تازه</button></div>`;
+  if (data.holdout && data.holdout.peekWarn) html += `<div class="warn">بخش نگه‌داشته‌شده‌ی داده قبلاً برای بررسی ${data.holdout.peeks} ترکیب استفاده شده؛ هرچه بیشتر به آن نگاه شود کمتر «دیده‌نشده» است. برای آزمون واقعی به داده‌ی تازه یا نماد دیگر نیاز داری.</div>`;
+  html += '<div style="overflow-x:auto"><table><thead><tr><th>تایم‌فریم</th>' + strategies.map((id) => `<th class="num">${esc(nameOf(id))}</th>`).join('') + '</tr></thead><tbody>';
+  timeframes.forEach((tf) => {
+    html += `<tr><td>${esc(tfLabel(tf))}</td>`;
+    strategies.forEach((id) => {
+      const c = cellMap[tf + '|' + id];
+      if (!c) { html += '<td class="num muted">—</td>'; return; }
+      const [label, cls] = MX_BADGE[c.verdict] || ['', ''];
+      if (!c.summary) { html += `<td class="num muted">${label}<br><small>${esc(c.reasons[0] || '')}</small></td>`; return; }
+      const s = c.summary;
+      html += `<td class="num"><span class="${cls}">${label}</span><br><span class="${s.ret >= 0 ? 'up' : 'down'}">${pct(s.ret)}</span><br><small class="muted">${s.n} معامله · PF ${pfx(s.pf)} · ${c.wf.profitableFolds}/${c.wf.folds} بازه سودده · افت ${fx(s.maxDD, 1)}%</small>${c.stat && c.stat.ci ? `<br><small class="muted" title="بازه‌ی ۹۵٪ میانگین R و احتمال شانسی‌بودن پس از تعدیل برای تعداد ترکیب‌های آزمایش‌شده">R ${fx(c.stat.ci.lo)} تا ${fx(c.stat.ci.hi)} · شانس ${fx(c.stat.pAdj * 100, 0)}٪${c.stat.blocks ? ` · ${c.stat.blocks} بلوک ${c.stat.blockDays} روزه` : ''}</small>` : ''}${c.holdout ? `<br><small class="${{ confirmed: 'up', failed: 'down', inconclusive: 'muted' }[c.holdout.status]}" title="${esc(c.holdout.reason)}">آزمون نهایی: ${{ confirmed: '✓ تأیید', failed: '✗ رد', inconclusive: '؟ نامعلوم' }[c.holdout.status]} (${c.holdout.n} معامله، ${pct(c.holdout.ret)})</small>` : ''}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  const noted = data.cells.filter((c) => c.verdict === 'reliable' && c.notes && c.notes.length);
+  if (noted.length) html += `<div class="warn" style="margin-top:8px"><b>توجه درباره‌ی نتیجه‌های «قابل اتکا»:</b><ul style="margin:4px 0 0;padding-inline-start:18px">${noted.map((c) => `<li>${esc(tfLabel(c.tf))} + ${esc(c.strategyName)}: ${c.notes.map(esc).join('؛ ')}</li>`).join('')}</ul></div>`;
+  const rel = data.cells.filter((c) => c.verdict === 'reliable');
+  const best = data.best && cellMap[data.best.tf + '|' + data.best.strategyId];
+  html += best
+    ? `<div style="margin-top:8px"><b>بهترین ترکیب قابل اتکا: ${esc(tfLabel(best.tf))} + ${esc(best.strategyName)}</b> — میانگین R ${fx(best.summary.avgR)}، PF ${pfx(best.summary.pf)}، سودده در ${best.wf.profitableFolds} از ${best.wf.folds} بازه. (${rel.length} ترکیب از ${data.cellsTested} ترکیب آزمایش‌شده قابل اتکا بود؛ چون چندین ترکیب را هم‌زمان می‌آزماییم، بعضی‌ها ممکن است فقط شانسی خوب باشند — قبل از پول واقعی چند هفته حالت آزمایشی را امتحان کن.)</div>`
+    : '<div class="warn" style="margin-top:8px">هیچ ترکیبی از نظر آماری قابل اتکا نبود. یعنی در این بازه نمی‌شود با اطمینان یکی را برتر دانست؛ «بهترینِ بد» را انتخاب نمی‌کنیم. بازه‌ی بررسی را (روز) بیشتر کن یا نماد/تایم‌فریم دیگری را امتحان کن.</div>';
+  html += `<details style="margin-top:8px"><summary>گزارش کامل متنی (قابل کپی)</summary><pre id="mxText" style="white-space:pre-wrap;direction:rtl;text-align:right;font-size:12px">${esc(data.text || '')}</pre><button class="runbtn" id="mxDownload" type="button">دانلود گزارش (.txt)</button></details>`;
+  $('mxResults').innerHTML = html;
+  $('mxResults').style.display = 'block';
+  const tr = $('mxTrialsReset');
+  if (tr) tr.addEventListener('click', async () => {
+    if (!confirm(`شمارنده‌ی آزمایش‌های ${data.symbol} پاک شود؟\nاین کار «فراموش کردن» ایده‌هایی است که قبلاً روی این نماد امتحان کرده‌ای و سخت‌گیری آمار را کم می‌کند. فقط وقتی بزن که تحقیق تازه‌ای روی داده‌ی تازه شروع می‌کنی.`)) return;
+    try { await fetch('/api/trials/' + encodeURIComponent(data.symbol), { method: 'DELETE' }); tr.textContent = 'پاک شد ✓'; tr.disabled = true; } catch {}
+  });
+  const dl = $('mxDownload');
+  if (dl) dl.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([t(data.text || '')], { type: 'text/plain;charset=utf-8' }));
+    a.download = `timeframe-report-${data.symbol.replace(/[^A-Za-z0-9]/g, '_')}.txt`; a.click(); URL.revokeObjectURL(a.href);
+  });
+}
+async function runMatrixCompare() {
+  const symbol = $('mxSymbol').value.trim().toUpperCase();
+  if (!symbol) { $('mxStatus').textContent = 'یک نماد وارد کن (مثل OANDA:XAUUSD)'; return; }
+  const timeframes = [...$('mxTfs').querySelectorAll('input:checked')].map((x) => x.value);
+  const strategies = [...$('mxStrats').querySelectorAll('input:checked')].map((x) => x.value);
+  if (!timeframes.length) { $('mxStatus').textContent = 'حداقل یک تایم‌فریم انتخاب کن'; return; }
+  if (!strategies.length) { $('mxStatus').textContent = 'حداقل یک استراتژی انتخاب کن'; return; }
+  $('mxRun').disabled = true;
+  $('mxStatus').textContent = `در حال دانلود داده و اجرای ${timeframes.length * strategies.length} بک‌تست (${timeframes.length} تایم‌فریم × ${strategies.length} استراتژی)…`;
+  $('mxResults').style.display = 'none';
+  renderMxCharts(symbol, timeframes); // the "several windows" — shown right away, independent of how long the backtests take
+  try {
+    const res = await fetch('/api/backtest/matrix', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, timeframes, strategies, days: Number($('mxDays').value) || 180, source: $('mxSource').value, refresh: $('mxRefresh').checked, holdout: $('mxHoldout').checked ? 0.25 : 0 }),
+    });
+    const data = await res.json();
+    $('mxRun').disabled = false;
+    if (!res.ok || data.error) { $('mxStatus').textContent = 'خطا: ' + (data.error || res.status); return; }
+    $('mxStatus').textContent = '';
+    renderMxResults(data);
+  } catch (e) { $('mxRun').disabled = false; $('mxStatus').textContent = 'خطا: ' + e.message; }
+}
+$('mxRun').addEventListener('click', runMatrixCompare);
+
+// ---------- small SVG charts (no library) ----------
+function lineSvg(pts, base) {
+  const W = 600, H = 150, P = 6;
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]).concat([base]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const sx = (x) => P + (x1 === x0 ? 0 : (x - x0) / (x1 - x0)) * (W - 2 * P);
+  const sy = (y) => H - P - (y1 === y0 ? 0.5 : (y - y0) / (y1 - y0)) * (H - 2 * P);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join('');
+  const col = pts[pts.length - 1][1] >= base ? 'var(--up)' : 'var(--down)';
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${sy(base).toFixed(1)}" y2="${sy(base).toFixed(1)}" stroke="var(--line)" stroke-dasharray="4 4"/><path d="${d}L${sx(x1).toFixed(1)},${H}L${sx(x0).toFixed(1)},${H}Z" fill="${col}" opacity=".12"/><path d="${d}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function barSvg(items) { // [{v}] positive = up colour, negative = down colour, zero line in the middle
+  const W = 600, H = 140, P = 6, mid = H / 2, n = items.length, bw = (W - 2 * P) / n;
+  const m = Math.max(...items.map((i) => Math.abs(i.v)), 1e-9);
+  const bars = items.map((it, i) => {
+    const h = Math.abs(it.v) / m * (mid - P);
+    return `<rect x="${(P + i * bw + bw * 0.15).toFixed(1)}" y="${(it.v >= 0 ? mid - h : mid).toFixed(1)}" width="${(bw * 0.7).toFixed(1)}" height="${Math.max(h, 0.5).toFixed(1)}" fill="${it.v >= 0 ? 'var(--up)' : 'var(--down)'}"/>`;
+  }).join('');
+  return `<svg class="chart" style="height:${H}px" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--line)"/>${bars}</svg>`;
+}
+
+// ---------- backtest progress (pushed from the worker thread over the websocket) ----------
+function btProgress(p) {
+  const short = (s) => String(s || '').split(':')[1] || s;
+  if (p.phase === 'matrix') {
+    if ($('mxRun').disabled) $('mxStatus').textContent = `در حال اجرا: ${p.done} از ${p.total} (${tfLabel(p.tf)} · ${short(p.strategyId)})`;
+    return;
+  }
+  if (!$('btRun').disabled) return;
+  if (p.phase === 'data') $('btStatus').textContent = `داده: ${p.done} از ${p.total}` + (p.state === 'downloading' ? ` · دانلود ${short(p.symbol)}…` : '');
+  else if (p.phase === 'compute') $('btStatus').textContent = 'در حال محاسبه‌ی بک‌تست…';
+  else if (p.phase === 'sweep') $('btStatus').textContent = `بررسی ترکیب‌ها: ${p.done} از ${p.total}`;
+}
+
+// ---------- performance analysis tab ----------
+const groupName = { crypto: 'کریپتو', stock: 'سهام', forex: 'فارکس/فلزات' };
+let anaTimer;
+function anaSoon() { if ($('anaView').classList.contains('view-on')) { clearTimeout(anaTimer); anaTimer = setTimeout(loadAna, 1500); } }
+function anaTable(title, rows, nameFn) {
+  if (!rows.length) return '';
+  return `<div><h3>${title}</h3><table><thead><tr><th></th><th class="num">تعداد</th><th class="num">برد٪</th><th class="num">سود/زیان</th></tr></thead><tbody>${rows.map((r) =>
+    `<tr><td>${esc(nameFn ? nameFn(r.key) : r.key)}</td><td class="num">${r.n}</td><td class="num">${r.winRate.toFixed(0)}%</td><td class="num ${r.pnl >= 0 ? 'up' : 'down'}">${r.pnl.toFixed(2)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+async function loadAna() {
+  const days = $('anaDays').value;
+  $('anaCsv').href = `/api/report/trades.csv?days=${days}`;
+  let r;
+  try { r = await (await fetch(`/api/report?days=${days}`)).json(); } catch { $('anaBody').innerHTML = '<div class="empty">خطا در بارگذاری گزارش</div>'; return; }
+  const s = r.summary, sg = r.signals;
+  const money = (n) => (n >= 0 ? '+' : '') + n.toFixed(2);
+  let html = '';
+  if (r.portfolio && r.mode !== 'signal') {
+    const p = r.portfolio;
+    html += `<div class="muted" style="margin-bottom:10px">الان: سرمایه ${fmt(p.equity)} · امروز ${pct(p.dayPnlPct)} · افت از اوج ${p.drawdownPct.toFixed(2)}% · پوزیشن باز ${p.positions.length}</div>`;
+  }
+  if (r.mode === 'signal') html += '<div class="warn">حالت «فقط سیگنال» است و معامله‌ای انجام نمی‌شود؛ آمار سیگنال‌ها پایین صفحه است. برای گزارش سود و زیان، MODE=paper بگذارید.</div>';
+  html += statRow([
+    ['سود/زیان خالص', `${money(s.net)} (${pct(s.netPct)})`, s.net >= 0 ? 'up' : 'down'],
+    ['تعداد معاملات', s.n], ['نرخ برد', s.winRate.toFixed(1) + '%'],
+    ['Profit Factor', s.profitFactor == null ? (s.wins ? '∞' : '—') : s.profitFactor.toFixed(2)],
+    ['میانگین هر معامله', money(s.expectancy)], ['میانگین برد / باخت', `${s.avgWin.toFixed(2)} / ${s.avgLoss.toFixed(2)}`],
+    ['بهترین / بدترین', `${s.best.toFixed(2)} / ${s.worst.toFixed(2)}`], ['حداکثر افت', s.maxDrawdownPct.toFixed(2) + '%'],
+    ['بدترین توالی باخت', s.worstStreak], ['میانگین مدت نگه‌داری', s.avgHoldMin == null ? '—' : s.avgHoldMin < 90 ? s.avgHoldMin.toFixed(0) + ' دقیقه' : (s.avgHoldMin / 60).toFixed(1) + ' ساعت'],
+  ]);
+  if (r.curve.length > 1) html += `<h3>سود/زیان تجمعی (محقق‌شده)</h3><div class="chartbox">${lineSvg(r.curve, 0)}</div><div class="cap">${money(r.curve[r.curve.length - 1][1])} · ${r.curve.length} نقطه</div>`;
+  if (r.byDay.length) html += `<h3>سود/زیان روزانه</h3><div class="chartbox">${barSvg(r.byDay.map((d) => ({ v: d.pnl })))}</div><div class="cap">${r.byDay[0].date} → ${r.byDay[r.byDay.length - 1].date}</div>`;
+  if (!s.n && r.mode !== 'signal') html += '<div class="empty">در این بازه معامله‌ی بسته‌شده‌ای نیست.</div>';
+  html += `<div class="two">${anaTable('به تفکیک نماد', r.bySymbol)}${anaTable('به تفکیک بازار', r.byGroup, (k) => groupName[k] || k)}${anaTable('به تفکیک دلیل خروج', r.byReason)}</div>`;
+  html += `<h3>سیگنال‌ها در این بازه</h3><div class="muted" style="margin-bottom:6px">خرید ${sg.buy} · فروش ${sg.sell} · ردشده ${sg.skipped}</div>`;
+  if (sg.skipReasons.length) html += `<table><thead><tr><th>چرا عمل نشد</th><th class="num">تعداد</th></tr></thead><tbody>${sg.skipReasons.map((x) => `<tr><td>${esc(x.reason)}</td><td class="num">${x.n}</td></tr>`).join('')}</tbody></table>`;
+  if (r.recent.length) html += `<h3>آخرین معاملات</h3><table><thead><tr><th>زمان</th><th>نماد</th><th class="num">ورود</th><th class="num">خروج</th><th class="num">سود/زیان</th><th>دلیل</th></tr></thead><tbody>${r.recent.map((t) =>
+    `<tr><td>${new Date(t.time).toLocaleString(TVLANG==='en'?'en':'fa-IR')}</td><td>${esc(t.symbol)}</td><td class="num">${fmt(t.entry)}</td><td class="num">${fmt(t.exit)}</td><td class="num ${t.pnl >= 0 ? 'up' : 'down'}">${t.pnl.toFixed(2)} (${t.pct.toFixed(1)}%)</td><td>${esc(String(t.reason).split('|')[0])}</td></tr>`).join('')}</tbody></table>`;
+  $('anaBody').innerHTML = html;
+}
+$('anaDays').addEventListener('change', loadAna);
+$('anaRefresh').addEventListener('click', loadAna);
+</script>
+<script src="/assistant.js"></script>
+</body>
+</html>
